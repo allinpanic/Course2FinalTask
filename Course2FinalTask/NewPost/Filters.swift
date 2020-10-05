@@ -11,7 +11,7 @@ import UIKit
 class Filters {
   private let context = CIContext()
   
-  let filterNamesArray = ["CIPhotoEffectChrome", "CIColorPosterize", "CIColorMonochrome", "CIGaussianBlur", "CIMotionBlur", "CIColorInvert", "CISepiaTone", "CICrystallize", "CIBloom",  "CIVignetteEffect"]
+  let filterNamesArray = ["CIPhotoEffectChrome", "CIColorPosterize", "CIColorMonochrome", "CIGaussianBlur", "CIMotionBlur", "CIColorInvert", "CISepiaTone", "CIBloom",  "CIVignetteEffect"]
   
   func getParameters(filter: String, image: UIImage) -> [String: Any] {
     var parameters: [String: Any] = [:]
@@ -21,8 +21,6 @@ class Filters {
     case "CIGaussianBlur":
       parameters = [kCIInputImageKey: ciimage, kCIInputRadiusKey: 3.0]
     case "CIMotionBlur":
-      parameters = [kCIInputImageKey: ciimage, kCIInputRadiusKey: 2.0]
-    case "CICrystallize":
       parameters = [kCIInputImageKey: ciimage, kCIInputRadiusKey: 2.0]
     case "CIBloom":
       parameters = [kCIInputImageKey: ciimage, kCIInputIntensityKey: 1.0]
