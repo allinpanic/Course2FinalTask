@@ -7,10 +7,9 @@
 //
 
 import UIKit
-import DataProvider
 
 final class NewPostViewController: UIViewController {
-  var minImages: [UIImage]?
+  var minImages: [UIImage?] = []
   let reusableCellID = "smallImageCell"
   
   private lazy var imagesCollectionView: UICollectionView = {
@@ -31,7 +30,8 @@ final class NewPostViewController: UIViewController {
     
     imagesCollectionView.dataSource = self
     imagesCollectionView.delegate = self
-    minImages = DataProviders.shared.photoProvider.photos()
+    
+    minImages = [UIImage(named: "new1"), UIImage(named: "new2"), UIImage(named: "new3" ), UIImage(named: "new4"), UIImage(named: "new5"), UIImage(named: "new6"), UIImage(named: "new7"), UIImage(named: "new8")]
   }
 }
 
@@ -50,12 +50,12 @@ extension NewPostViewController {
 
 extension NewPostViewController: UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
   func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-    minImages?.count ?? 0
+    minImages.count
   }
   
   func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
     guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: reusableCellID, for: indexPath) as? NewImageThumbnailCell else {return UICollectionViewCell()}
-    cell.imageView.image = minImages?[indexPath.row]
+    cell.imageView.image = minImages[indexPath.row]
     return cell
   }
   
@@ -64,7 +64,7 @@ extension NewPostViewController: UICollectionViewDataSource, UICollectionViewDel
   }
  
   func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-    if let image = minImages?[indexPath.row] {
+    if let image = minImages[indexPath.row] {
       self.navigationController?.pushViewController(FilterImageViewController(image: image, index: indexPath.row), animated: true)
     }
   }

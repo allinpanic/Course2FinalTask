@@ -6,6 +6,7 @@ target 'Course2FinalTask' do
   use_frameworks!
 
   # Pods for Course2FinalTask
-  pod 'SnapKit' 
+  pod 'SnapKit'
+  pod 'Kingfisher' 
 
 end
