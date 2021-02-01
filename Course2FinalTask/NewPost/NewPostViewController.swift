@@ -11,6 +11,7 @@ import UIKit
 final class NewPostViewController: UIViewController {
   var minImages: [UIImage?] = []
   let reusableCellID = "smallImageCell"
+  var token: String
   
   private lazy var imagesCollectionView: UICollectionView = {
     let layout = UICollectionViewFlowLayout()
@@ -22,6 +23,15 @@ final class NewPostViewController: UIViewController {
     collectionView.isScrollEnabled = true
     return collectionView
   }()
+  
+  init(token: String) {
+    self.token = token
+    super.init(nibName: nil, bundle: nil)
+  }
+  
+  required init?(coder: NSCoder) {
+    fatalError("init(coder:) has not been implemented")
+  }
   
   override func viewDidLoad() {
     super.viewDidLoad()
@@ -65,7 +75,9 @@ extension NewPostViewController: UICollectionViewDataSource, UICollectionViewDel
  
   func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
     if let image = minImages[indexPath.row] {
-      self.navigationController?.pushViewController(FilterImageViewController(image: image, index: indexPath.row), animated: true)
+      let filterImageViewController = FilterImageViewController(image: image, index: indexPath.row)
+      filterImageViewController.token = token
+      self.navigationController?.pushViewController(filterImageViewController, animated: true)
     }
   }
 }

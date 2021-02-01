@@ -7,10 +7,10 @@
 //
 
 import UIKit
-import DataProvider
 
 final class AddDescriptionViewController: UIViewController {
 // MARK: - Properties
+  var token: String = ""
   
   private var filteredImageView: UIImageView = {
     let imageView = UIImageView()
@@ -84,18 +84,21 @@ extension AddDescriptionViewController {
     guard let postImage = filteredImageView.image,
           let text = descriptionTextField.text else {return}
     
-    DataProviders.shared.postsDataProvider.newPost(with: postImage,
-                                                   description: text,
-                                                   queue: DispatchQueue.global(qos: .userInteractive),
-                                                   handler:
-      { [weak self] post in
-        DispatchQueue.main.async {
-          self?.tabBarController?.selectedIndex = 0
-          self?.navigationController?.popToRootViewController(animated: true)
-        }
-    })
+    guard let addPostRequest = NetworkManager.shared.newPostRequest(image: postImage,
+                                                              description: text,
+                                                              token: token) else {return}
+    
+    NetworkManager.shared.performRequest(request: addPostRequest,
+                                         session: URLSession.shared)
+    { [weak self] (data) in
+      DispatchQueue.main.async {
+        self?.tabBarController?.selectedIndex = 0
+        self?.navigationController?.popToRootViewController(animated: true)
+      }
+    }
   }
 }
+// MARK: - Handle Keyboard
 
 extension AddDescriptionViewController {
   private func handleKeyboard() {

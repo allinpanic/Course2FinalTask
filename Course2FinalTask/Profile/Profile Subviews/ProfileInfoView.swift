@@ -7,9 +7,8 @@
 //
 
 import UIKit
-import DataProvider
 
-protocol ProfileInfoViewDelegate: AnyObject {
+protocol ProfileInfoViewDelegate: NetworkManagerDelegate{
   func followersTapped(userList: [User], title: String)
   func followingTapped(userList: [User], title: String)
   func showAlert()
@@ -18,8 +17,10 @@ protocol ProfileInfoViewDelegate: AnyObject {
 }
 
 final class ProfileInfoView: UIView {
-  weak var delegate: ProfileInfoViewDelegate?  
+  weak var delegate: ProfileInfoViewDelegate?
   var user: User?
+  var token: String?
+  let session = URLSession.shared
 //MARK: - Private properties
   
   private var userAvatarImageView: UIImageView = {
@@ -81,6 +82,7 @@ final class ProfileInfoView: UIView {
   override init(frame: CGRect) {
     super.init(frame: frame)
     setupLayout()
+    NetworkManager.shared.delegate = delegate
   }
   
   required init?(coder: NSCoder) {
@@ -122,16 +124,14 @@ extension ProfileInfoView {
     followButton.snp.makeConstraints{
       $0.top.equalToSuperview().inset(8)
       $0.trailing.equalTo(followingLabel)
-      //$0.width.equalTo(buttonSize)
       $0.width.greaterThanOrEqualTo(60).priority(750)
     }
-   
-    configureFollowButton()
   }
   
   func fillProfileInfo() {
     if let user = user {
-      userAvatarImageView.image = user.avatar
+      guard let avatarURL = URL(string: user.avatar) else {return}
+      userAvatarImageView.kf.setImage(with: avatarURL)
       userNameLabel.text = user.fullName
       followersLabel.text = "Followers: \(user.followedByCount)"
       followersLabel.sizeToFit()
@@ -145,90 +145,117 @@ extension ProfileInfoView {
         followButton.sizeToFit()
       }
     }
+    configureFollowButton()
+  }
+  
+  private func configureFollowButton() {
+    guard let token = token,
+      let currentUserRequest = NetworkManager.shared.currentUserRequest(token: token) else {
+        delegate?.showAlert()
+      return}
+
+    NetworkManager.shared.performRequest(request: currentUserRequest,
+                                         session: session)
+    { [weak self] (data) in
+      guard let currenUser = NetworkManager.shared.parseJSON(jsonData: data, toType: User.self) else {return}
+      
+      if self?.user?.id != currenUser.id  {
+        DispatchQueue.main.async {
+          self?.followButton.isHidden = false
+        }
+      }
+    }
   }
 }
 //MARK: - Gesture Handlers
 
 extension ProfileInfoView {
-  @objc func followersLabelTapped (_ recognizer: UITapGestureRecognizer) {
-    let globalQueue = DispatchQueue.global(qos: .userInteractive)
+  @objc private func followersLabelTapped (_ recognizer: UITapGestureRecognizer) {
     
     delegate?.showIndicator()
     
     if let userID = user?.id {
-      DataProviders.shared.usersDataProvider.usersFollowingUser(with: userID, queue: globalQueue)
-      { [weak self] usersArray in
-        if let usersArray = usersArray {
-          DispatchQueue.main.async {
-            self?.delegate?.hideIndicator()
-            self?.delegate?.followersTapped(userList: usersArray, title: "Followers")
-          }
-        } else {
-          DispatchQueue.main.async {
-            self?.delegate?.showAlert()
-          }
+      
+      guard let token = token,
+        let followersRequest = NetworkManager.shared.getFollowingUsersForUserRequest(withUserID: userID,
+                                                                                     token: token) else {return}
+      
+      NetworkManager.shared.performRequest(request: followersRequest, session: session) {
+        [weak self](data) in
+        guard let usersArray = NetworkManager.shared.parseJSON(jsonData: data,
+                                                               toType: [User].self) else {return}
+        
+        DispatchQueue.main.async{
+          self?.delegate?.hideIndicator()
+          self?.delegate?.followersTapped(userList: usersArray, title: "Followers")
         }
       }
     }
   }
   
-  @objc func followinLabelTapped (_ recognizer: UITapGestureRecognizer) {
-    let globalQueue = DispatchQueue.global(qos: .userInteractive)
+  @objc private func followinLabelTapped (_ recognizer: UITapGestureRecognizer) {
     
     delegate?.showIndicator()
     
     if let userID = user?.id {
-      DataProviders.shared.usersDataProvider.usersFollowedByUser(with: userID, queue: globalQueue)
-      { [weak self] usersArray in
-        if let usersArray = usersArray {
-          DispatchQueue.main.async {
-            self?.delegate?.hideIndicator()
-            self?.delegate?.followingTapped(userList: usersArray, title: "Following")
-          }
-        } else {
-          DispatchQueue.main.async {
-            self?.delegate?.showAlert()
-          }
+      guard let token = token,
+        let followersRequest = NetworkManager.shared.getUsersFollowedByUserRequest(withUserID: userID,
+                                                                                   token: token) else {return}
+      
+      NetworkManager.shared.performRequest(request: followersRequest,
+                                           session: session)
+      { [weak self](data) in
+        guard let usersArray = NetworkManager.shared.parseJSON(jsonData: data,
+                                                               toType: [User].self) else {return}
+        
+        DispatchQueue.main.async{
+          self?.delegate?.hideIndicator()
+          self?.delegate?.followingTapped(userList: usersArray, title: "Following")
         }
       }
     }
   }
   
-  @objc func followButtonTapped () {
+  @objc private func followButtonTapped () {
     if let user = user {
       if user.currentUserFollowsThisUser {
-
-        DataProviders.shared.usersDataProvider.unfollow(user.id,
-                                                        queue: DispatchQueue.global(qos: .userInteractive))
-        { [weak self] user in
-          if let user = user {
-            self?.user = user
-            
-            DispatchQueue.main.async {
-              self?.followersLabel.text = "Followers: \(user.followedByCount)"
-              self?.followButton.setTitle("Follow", for: .normal)
-            }
-          } else {
-            DispatchQueue.main.async {
-              self?.delegate?.showAlert()
-            }
+        
+        guard let token = token,
+          let unfollowRequest = NetworkManager.shared.unfollowUserRequest(withUserID: user.id,
+                                                                          token: token) else {return}
+        
+        NetworkManager.shared.performRequest(request: unfollowRequest,
+                                             session: session)
+        { [weak self] (data) in
+          guard let user = NetworkManager.shared.parseJSON(jsonData: data,
+                                                           toType: User.self) else {return}
+          
+          self?.user = user
+          
+          DispatchQueue.main.async {
+            self?.followersLabel.text = "Followers: \(user.followedByCount)"
+            self?.followButton.setTitle("Follow", for: .normal)
           }
         }
       } else {
-        DataProviders.shared.usersDataProvider.follow(user.id,
-                                                      queue: DispatchQueue.global(qos: .userInteractive))
-        { [weak self] user in
-          if let user = user {
-            self?.user = user
-            
-            DispatchQueue.main.async {
-              self?.followersLabel.text = "Followers: \(user.followedByCount)"
-              self?.followButton.setTitle("Unfollow", for: .normal)
-            }
-          } else {
-            DispatchQueue.main.async {
-              self?.delegate?.showAlert()
-            }
+        guard let token = token,
+          let followRequest = NetworkManager.shared.followUserRequest(withUserID: user.id,
+                                                                      token: token) else {return}
+        
+        NetworkManager.shared.performRequest(request: followRequest,
+                                             session: session)
+        { [weak self] (data) in
+          guard let user = NetworkManager.shared.parseJSON(jsonData: data,
+                                                           toType: User.self) else {
+                                                            self?.delegate?.showAlert()
+                                                            return
+          }
+          
+          self?.user = user
+          
+          DispatchQueue.main.async {
+            self?.followersLabel.text = "Followers: \(user.followedByCount)"
+            self?.followButton.setTitle("Unfollow", for: .normal)
           }
         }
       }
@@ -236,17 +263,3 @@ extension ProfileInfoView {
   }
 }
 
-extension ProfileInfoView {
-  
-  private func configureFollowButton() {
-    DataProviders.shared.usersDataProvider.currentUser(queue: DispatchQueue.global(qos: .userInitiated)) { [weak self](currentUser) in
-      if let currentUser = currentUser {
-        if self?.user?.id != currentUser.id {
-          DispatchQueue.main.async {
-            self?.followButton.isHidden = false
-          }
-        }
-      }
-    }
-  }
-}

@@ -7,10 +7,11 @@
 //
 
 import UIKit
-import DataProvider
 
 final class FeedViewController: UIViewController {
 //MARK: - Properties
+  private let session = URLSession.shared
+  let token: String
   
   private lazy var feedTableView: UITableView = {
     let tableView = UITableView()
@@ -36,48 +37,32 @@ final class FeedViewController: UIViewController {
   
   private let reuseIdentifier = "postCell"
   private var posts: [Post] = []
- //MARK: - ViewDidLoad
+  
+  init(token: String) {
+    self.token = token
+    super.init(nibName: nil, bundle: nil)
+  }
+  
+  required init?(coder: NSCoder) {
+    fatalError("init(coder:) has not been implemented")
+  }
+  //MARK: - ViewDidLoad
   
   override func viewDidLoad() {
     super.viewDidLoad()
 
     feedTableView.dataSource = self
+    NetworkManager.shared.delegate = self
     setupLayout()
-    
-    showIndicator()
-    DataProviders.shared.postsDataProvider.feed(queue: DispatchQueue.global(qos: .userInitiated))
-    { [weak self] postsArray in
-      if let postsArray = postsArray {
-        self?.posts = postsArray
-        
-        DispatchQueue.main.async {
-          self?.feedTableView.reloadData()
-          self?.hideIndicator()
-        }
-      } else {
-        self?.showAlert()
-      }
-    }
   }
-//MARK: - ViewDidAppear
+//MARK: - ViewWillAppear
   
   override func viewWillAppear(_ animated: Bool) {
     super.viewWillAppear(animated)
 
     showIndicator()
-    DataProviders.shared.postsDataProvider.feed(queue: DispatchQueue.global(qos: .userInitiated))
-    { [weak self] postsArray in
-      if let postsArray = postsArray {
-        self?.posts = postsArray
-        
-        DispatchQueue.main.async {
-          self?.feedTableView.reloadData()
-          self?.hideIndicator()
-        }
-      } else {
-        self?.showAlert()
-      }
-    }
+    getPosts()
+
   }
 }
 
@@ -101,8 +86,8 @@ extension FeedViewController: UITableViewDataSource {
     guard let cell = feedTableView.dequeueReusableCell(withIdentifier: reuseIdentifier, for: indexPath) as? FeedPostCell
       else { return UITableViewCell() }
     
-    cell.post = posts[indexPath.row]  
-    cell.configureCell()
+    cell.token = token
+    cell.post = posts[indexPath.row]
     cell.delegate = self
     
     return cell
@@ -115,6 +100,7 @@ extension FeedViewController: FeedPostCellDelegate {
     let alert = UIAlertController(title: "Unknokn error!",
                                   message: "Please, try again later",
                                   preferredStyle: .alert)
+    
     let alertAction = UIAlertAction(title: "OK",
                                     style: .default,
                                     handler: { action in
@@ -125,7 +111,7 @@ extension FeedViewController: FeedPostCellDelegate {
   }
   
   func postHeaderViewTapped(user: User) {
-    self.navigationController?.pushViewController(ProfileViewController(user: user), animated: true)
+    self.navigationController?.pushViewController(ProfileViewController(user: user, token: token), animated: true)
   }
   
   func postImageDoubleTapped(imageView: UIImageView) {
@@ -134,13 +120,13 @@ extension FeedViewController: FeedPostCellDelegate {
   }
   
   func likesLabelTapped(users: [User], title: String) {
-    self.navigationController?.pushViewController(UsersListViewController(userList: users, title: title), animated: true)
+    self.navigationController?.pushViewController(UsersListViewController(userList: users, title: title, token: token), animated: true)
   }
 }
 //MARK: - Animation
 
 extension FeedViewController {
-  func animateImage (imageView: UIImageView) {
+  private func animateImage (imageView: UIImageView) {
     let animation = CAKeyframeAnimation(keyPath: #keyPath(CALayer.opacity))
     animation.values = [0, 1, 1, 0]
     animation.keyTimes = [0, 0.17, 0.7, 1]
@@ -173,5 +159,50 @@ extension FeedViewController {
     indicator.hidesWhenStopped = true
     indicator.removeFromSuperview()
     dimmedView.removeFromSuperview()
+  }
+}
+
+extension FeedViewController {
+  private func getPosts() {
+    
+    guard let postsRequest = NetworkManager.shared.getFeedRequest(token: token) else {
+      print("cannot make feed request")
+      return}
+    
+    NetworkManager.shared.performRequest(request: postsRequest, session: session) {
+      [weak self] (data) in
+      guard let posts = NetworkManager.shared.parseJSON(jsonData: data, toType: [Post].self) else {return}
+      
+      self?.posts = posts
+      
+      DispatchQueue.main.async {
+        self?.feedTableView.reloadData()
+        self?.hideIndicator()
+      }
+    }
+  }
+}
+// MARK: - NetworkManager Delegate
+
+extension FeedViewController: NetworkManagerDelegate {
+  func showAlert(statusCode: Int) {
+    let title: String
+    
+    switch statusCode {
+    case 400: title = "Bad Request"
+    case 401: title = "Unathorized"
+    case 404: title = "Not Found"
+    case 406: title = "Not acceptable"
+    case 422: title = "Unprocessable"
+    default: title = "Transfer Error"
+    }
+    
+    let alertVC = UIAlertController(title: title, message: "\(statusCode)", preferredStyle: .alert)
+    let action = UIAlertAction(title: "OK", style: .cancel) { (action) in
+      alertVC.dismiss(animated: true, completion: nil)
+    }
+    
+    alertVC.addAction(action)
+    present(alertVC, animated: true, completion: nil)
   }
 }

@@ -8,9 +8,9 @@
 
 import UIKit
 import SnapKit
-import DataProvider
+import Kingfisher
 
-protocol FeedPostCellDelegate: AnyObject {
+protocol FeedPostCellDelegate: NetworkManagerDelegate {
   func postHeaderViewTapped(user: User)
   func postImageDoubleTapped(imageView: UIImageView)
   func likesLabelTapped(users: [User], title: String)
@@ -19,10 +19,40 @@ protocol FeedPostCellDelegate: AnyObject {
 
 final class FeedPostCell: UITableViewCell {
   
-  var post: Post?
+  var token: String?
   weak var delegate: FeedPostCellDelegate?
   
+  var post: Post? {
+    didSet {
+      guard let post = post,
+        let imageURL = URL(string: post.image),
+        let avatarURL = URL(string: post.authorAvatar)
+        else {return}
+      
+      getLikesCount()
+      
+      let date = convertDate(dateString: post.createdTime)
+
+      postImageView.kf.setImage(with: imageURL)
+      postHeader.avatarImageView.kf.setImage(with: avatarURL)
+      postHeader.authorNameLabel.text = post.authorUsername
+      postHeader.dateLabel.text = "\(date)"
+      postFooter.postTextLabel.text = post.description
+      
+      if post.currentUserLikesThisPost == false {
+        postFooter.likeButton.tintColor = .lightGray
+      } else {
+        postFooter.likeButton.tintColor = .systemBlue
+      }
+    }
+  }
+  
 // MARK: - Private properties
+  private var likesCount: Int = 0 {
+    didSet {
+      postFooter.likesLabel.text = "Likes: \(likesCount)"
+    }
+  }
   
   private lazy var postHeader: PostHeader = {
     let header = PostHeader()
@@ -80,7 +110,7 @@ final class FeedPostCell: UITableViewCell {
 // MARK: - Fill In Cell
 
 extension FeedPostCell {
-  func setupLayout() {
+  private func setupLayout() {
     contentView.addSubview(postHeader)
     contentView.addSubview(postImageView)
     contentView.addSubview(bigLikeImageView)
@@ -109,118 +139,151 @@ extension FeedPostCell {
     
     postFooter.likeButton.addTarget(self, action: #selector(likeButtonPressed), for: .touchUpInside)
   }
-  
-  func configureCell() {
-    let formater = DateFormatter()
-    formater.timeStyle = .medium
-    formater.dateStyle = .medium
-    formater.doesRelativeDateFormatting = true
-    
-    if let post = post {
-      postImageView.image = post.image
-      postHeader.avatarImageView.image = post.authorAvatar
-      postHeader.authorNameLabel.text = post.authorUsername
-      postHeader.dateLabel.text = formater.string(from: post.createdTime)
-      postFooter.likesLabel.text = "Likes: \(post.likedByCount)"
-      postFooter.postTextLabel.text = post.description
-      
-      if post.currentUserLikesThisPost == false {
-        postFooter.likeButton.tintColor = .lightGray
-      } else {
-        postFooter.likeButton.tintColor = .systemBlue
-      }
-    }
-  }
 }
 
 // MARK: - Gesture Handlers
 
 extension FeedPostCell {
   
-  @objc func postHeaderTapped(_ recognizer: UITapGestureRecognizer) {
-    
+  @objc private func postHeaderTapped(_ recognizer: UITapGestureRecognizer) {    
     if let userID = post?.author {
-      DataProviders.shared.usersDataProvider.user(with: userID,
-                                                  queue: DispatchQueue.global(qos: .userInteractive),
-                                                  handler:
-        { [weak self] user1 in
-          if let user1 = user1 {
-            DispatchQueue.main.async {
-              self?.delegate?.postHeaderViewTapped(user: user1)
-            }
-          } else {
-            DispatchQueue.main.async {
-              self?.delegate?.showAlert()
-            }
+      
+      guard let token = token,
+        let userRequest = NetworkManager.shared.getUserRequest(withUserID: userID, token: token) else {return}
+      
+      NetworkManager.shared.performRequest(request: userRequest,
+                                           session: URLSession.shared)
+      { [weak self] (data) in
+        guard let user = NetworkManager.shared.parseJSON(jsonData: data, toType: User.self) else {
+          DispatchQueue.main.async {
+            self?.delegate?.showAlert()
           }
-      })
+          return
+        }
+        DispatchQueue.main.async {
+          self?.delegate?.postHeaderViewTapped(user: user)
+        }
+      }
     }
   }
   
-  @objc func postImageTapped (_ gestureRecognizer: UITapGestureRecognizer) {
+  @objc private func postImageTapped (_ gestureRecognizer: UITapGestureRecognizer) {
     delegate?.postImageDoubleTapped(imageView: bigLikeImageView)
     if post?.currentUserLikesThisPost == false {
       likeButtonPressed()
     }
   }
   
-  @objc func likesCountTapped (_ gestureRecognizer: UITapGestureRecognizer) {
-    if let postID = post?.id {      
-      DataProviders.shared.postsDataProvider.usersLikedPost(with: postID,
-                                                            queue: DispatchQueue.global(qos: .userInteractive) )
-      { [weak self] usersList in
-        if let usersList = usersList {
-          DispatchQueue.main.async {
-            self?.delegate?.likesLabelTapped(users: usersList, title: "Likes")
-          }
-        } else {
+  @objc private func likesCountTapped (_ gestureRecognizer: UITapGestureRecognizer) {
+    if let postID = post?.id {
+      
+      guard let token = token,
+        let usersLikedRequest = NetworkManager.shared.getUsersLikedPostRequest(withPostID: postID,
+                                                                               token: token) else {
+                                                                               // delegate?.showAlert()
+                                                                                return}
+      
+      NetworkManager.shared.performRequest(request: usersLikedRequest,
+                                           session: URLSession.shared)
+      { [weak self] (data) in
+        guard let users = NetworkManager.shared.parseJSON(jsonData: data, toType: [User].self) else {
           DispatchQueue.main.async {
             self?.delegate?.showAlert()
           }
+          return
+        }
+        
+        DispatchQueue.main.async {
+          self?.delegate?.likesLabelTapped(users: users, title: "Likes")
         }
       }
     }
   }
   
-  @objc func likeButtonPressed () {
+  @objc private func likeButtonPressed () {
     if let postID = post?.id {
       if post?.currentUserLikesThisPost == true {
-        DataProviders.shared.postsDataProvider.unlikePost(with: postID,
-                                                          queue: DispatchQueue.global(qos: .userInteractive),
-                                                          handler:
-          { [weak self] post in
-            if let post = post {
-              self?.post = post
-              
-              DispatchQueue.main.async {
-                self?.postFooter.likeButton.tintColor = .lightGray
-                self?.postFooter.likesLabel.text = "Likes: \(post.likedByCount)"
-              }
-            } else {
-              DispatchQueue.main.async {
-                self?.delegate?.showAlert()
-              }
-            }
-        })
+        
+        guard let token = token,
+          let unlikeRequest = NetworkManager.shared.unlikePostRequest(withPostID: postID,
+                                                                      token: token) else {
+                                                                        return}
+        
+        NetworkManager.shared.performRequest(request: unlikeRequest,
+                                             session: URLSession.shared)
+        { [weak self] (data) in
+          guard let post = NetworkManager.shared.parseJSON(jsonData: data, toType: Post.self) else {
+            return
+          }
+          
+          DispatchQueue.main.async {
+            self?.post = post
+            self?.postFooter.likeButton.tintColor = .lightGray
+          }
+        }
       } else {
-        DataProviders.shared.postsDataProvider.likePost(with: postID,
-                                                        queue: DispatchQueue.global(qos: .userInteractive),
-                                                        handler:
-          { [weak self] post in
-            if let post = post {
-              self?.post = post
-              
-              DispatchQueue.main.async {
-                self?.postFooter.likeButton.tintColor = .systemBlue
-                self?.postFooter.likesLabel.text = "Likes: \(post.likedByCount)"
-              }
-            } else {
-              DispatchQueue.main.async {
-                self?.delegate?.showAlert()
-              }
-            }
-        })
+        guard let token = token,
+          let likeRequest = NetworkManager.shared.likePostRequest(withPostID: postID,
+                                                                      token: token) else {
+                                                                       // delegate?.showAlert()
+                                                                        return}
+        
+        NetworkManager.shared.performRequest(request: likeRequest,
+                                             session: URLSession.shared)
+        { [weak self] (data) in
+          guard let post = NetworkManager.shared.parseJSON(jsonData: data, toType: Post.self) else {
+            return
+          }
+          
+          
+          DispatchQueue.main.async {
+            self?.post = post
+            self?.postFooter.likeButton.tintColor = .systemBlue
+          }
+        }
       }
     }
-  }    
+  }
+}
+// MARK: - Private functions
+
+extension FeedPostCell {
+  
+  private func convertDate(dateString: String) -> String {
+    let formatter = DateFormatter()
+    formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZZZZZ"
+    if let date = formatter.date(from: dateString) {
+      
+      formatter.timeStyle = .medium
+      formatter.dateStyle = .medium
+      formatter.doesRelativeDateFormatting = true
+      
+      return formatter.string(from: date)
+    }
+    
+    return ""
+  }
+  
+  private func getLikesCount() {
+    guard let post = post else {return}
+    
+    guard let token = token,
+      let usersLikedRequest = NetworkManager.shared.getUsersLikedPostRequest(withPostID: post.id, token: token) else {
+        print("cannot make users request")
+        return }
+    
+    NetworkManager.shared.performRequest(request: usersLikedRequest, session: URLSession.shared)
+    { [weak self] (data) in
+      guard let users = NetworkManager.shared.parseJSON(jsonData: data, toType: [User].self) else {
+        DispatchQueue.main.async {
+          self?.delegate?.showAlert()
+        }
+        return
+      }
+      
+      DispatchQueue.main.async {
+        self?.likesCount = users.count
+      }
+    }
+  }
 }

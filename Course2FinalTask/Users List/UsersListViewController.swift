@@ -7,9 +7,10 @@
 //
 
 import UIKit
-import DataProvider
 
 final class UsersListViewController: UIViewController {
+
+  private let token: String
   
   private lazy var usersTableView: UITableView = {
     let tableView = UITableView()
@@ -21,8 +22,9 @@ final class UsersListViewController: UIViewController {
   
   private var userList: [User]
   
-  init(userList: [User], title: String) {
-    self.userList = userList    
+  init(userList: [User], title: String, token: String) {
+    self.userList = userList
+    self.token = token
     super.init(nibName: nil, bundle: nil)
     self.navigationItem.title = title
   }
@@ -77,6 +79,6 @@ extension UsersListViewController: UITableViewDataSource, UITableViewDelegate {
   
   func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
      let user = userList[indexPath.row]
-      self.navigationController?.pushViewController(ProfileViewController(user: user), animated: true)    
+      self.navigationController?.pushViewController(ProfileViewController(user: user, token: token), animated: true)
   }
 }

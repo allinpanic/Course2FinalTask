@@ -7,7 +7,6 @@
 //
 
 import UIKit
-import DataProvider
 
 final class UserTableViewCell: UITableViewCell {
   var user: User?
@@ -54,7 +53,8 @@ extension UserTableViewCell {
   
   func configureCell() {
     if let user = user {
-      userAvatarImageView.image = user.avatar
+      guard let imageURL = URL(string: user.avatar) else {return}
+      userAvatarImageView.kf.setImage(with: imageURL)
       userNameLabel.text = user.fullName
     }
   }

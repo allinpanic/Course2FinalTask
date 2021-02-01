@@ -8,11 +8,14 @@
 
 import Foundation
 import UIKit
-import DataProvider
+
 
 final class AuthoriseViewController: UIViewController {
+  // MARK: - Private Properties
   
-  private let loginTextField: UITextField = {
+  private let session = URLSession.shared
+  
+  private lazy var loginTextField: UITextField = {
     let textField = UITextField()
     textField.autocorrectionType = .no
     textField.placeholder = "Login"
@@ -20,10 +23,12 @@ final class AuthoriseViewController: UIViewController {
     textField.textColor = .black
     textField.font = .systemFont(ofSize: 14)
     textField.borderStyle = .roundedRect
+    textField.returnKeyType = .send
+    textField.delegate = self
     return textField
   }()
   
-  private let passwordTextField: UITextField = {
+  private lazy var passwordTextField: UITextField = {
     let textField = UITextField()
     textField.autocorrectionType = .no
     textField.placeholder = "Password"
@@ -31,6 +36,8 @@ final class AuthoriseViewController: UIViewController {
     textField.textColor = .black
     textField.font = .systemFont(ofSize: 14)
     textField.borderStyle = .roundedRect
+    textField.returnKeyType = .send
+    textField.delegate = self
     return textField
   }()
   
@@ -40,18 +47,26 @@ final class AuthoriseViewController: UIViewController {
     button.setTitleColor(.white, for: .normal)
     button.backgroundColor = UIColor(named: "SignInButtonColor")
     button.titleLabel?.font = .systemFont(ofSize: 14)
-//    button.isEnabled = false
-//    button.alpha = 0.3
+    button.isEnabled = false
+    button.alpha = 0.3
     button.addTarget(self, action: #selector(signInButtonPressed), for: .touchUpInside)
+    button.isUserInteractionEnabled = true
     return button
   }()
+  // MARK: - ViewDidLoad
   
   override func viewDidLoad() {
     super.viewDidLoad()
+    NetworkManager.shared.delegate = self
     
     view.backgroundColor = .white
     
     setupLayout()
+    
+    handleKeyboard()
+    
+    loginTextField.addTarget(self, action: #selector(textChanged(_:)), for: .editingChanged)
+    passwordTextField.addTarget(self, action: #selector(textChanged(_:)), for: .editingChanged)
   }
 }
 
@@ -80,35 +95,62 @@ extension AuthoriseViewController {
     }
   }
 }
+// MARK: - Button Handler
 
 extension AuthoriseViewController {
+  @objc private func textChanged(_ textField: UITextField) {
+    guard let loginText = loginTextField.text,
+      let passwordText = passwordTextField.text else {return}
+    
+    if !loginText.isEmpty && !passwordText.isEmpty {
+      signInButton.isEnabled = true
+      signInButton.alpha = 1
+    } else {
+      signInButton.isEnabled = false
+      signInButton.alpha = 0.3
+    }
+  }
+  
   @objc private func signInButtonPressed() {
-    print("sign in button pressed")
-   
-    //urlsession with auth here
     
+    guard let loginText = loginTextField.text,
+      let passwordText = passwordTextField.text else {return}
     
-    let tabBarController = UITabBarController()
+    guard let signInRequest = NetworkManager.shared.signinRequest(userName: loginText,
+                                                                  password: passwordText) else {return}
     
-    let feedViewController = FeedViewController()
-    let profileViewController = ProfileViewController(user: nil)
-    let newPostViewController = NewPostViewController()
-    
-    
-    DataProviders.shared.usersDataProvider.currentUser(queue: DispatchQueue.global(qos: .userInteractive)){
-      user in
-      if let currentUser = user {
+    NetworkManager.shared.performRequest(request: signInRequest, session: session) {
+      [weak self] (data) in
+      
+      guard let tokenSelf = NetworkManager.shared.parseJSON(jsonData: data, toType: Token.self) else {return}
+      
+      guard let currentUserRequest = NetworkManager.shared.currentUserRequest(token: tokenSelf.token) else {return}
+      guard let session = self?.session else {return}
+      
+      NetworkManager.shared.performRequest(request: currentUserRequest,
+                                           session: session)
+      { [weak self] (data) in
+        guard let currenUser = NetworkManager.shared.parseJSON(jsonData: data, toType: User.self) else {return}
+        
         DispatchQueue.main.async {
-          profileViewController.user = currentUser
-        }
-      } else {
-        DispatchQueue.main.async {
-          let alert = UIAlertController(title: "Unknown error", message: "Please, try again later", preferredStyle: .alert)
-          alert.addAction(UIAlertAction(title: "OK", style: .cancel, handler: nil))
-          profileViewController.present(alert, animated: true, completion: nil)
+          let tabBarController = self?.instansiateMainViewController(currentUser: currenUser, token: tokenSelf.token)
+          UIApplication.shared.windows.first?.rootViewController = tabBarController
         }
       }
     }
+  }
+}
+// MARK: - Make main view cotrollers
+
+extension AuthoriseViewController {
+  private func instansiateMainViewController(currentUser: User?, token: String) -> UIViewController {
+    let tabBarController = UITabBarController()
+    
+    let feedViewController = FeedViewController(token: token)
+    let profileViewController = ProfileViewController(user: nil, token: token)
+    let newPostViewController = NewPostViewController(token: token)
+    
+    profileViewController.user = currentUser
     
     let feedNavigationController = UINavigationController(rootViewController: feedViewController)
     feedViewController.title = "Feed"
@@ -122,7 +164,68 @@ extension AuthoriseViewController {
     newPostNavigationController.tabBarItem.image = #imageLiteral(resourceName: "plus")
     profileNavigationController.tabBarItem.image = #imageLiteral(resourceName: "profile")
     
+    return tabBarController
+  }
+}
+// MARK: - NetworkMAnagerDelegate
+
+extension AuthoriseViewController: NetworkManagerDelegate {
+  func showAlert(statusCode: Int) {
+    let title: String
     
-    UIApplication.shared.windows.first?.rootViewController = tabBarController
+    switch statusCode {
+    case 400: title = "Bad Request"
+    case 401: title = "Unathorized"
+    case 404: title = "Not Found"
+    case 406: title = "Not acceptable"
+    case 422: title = "Unprocessable"
+    default: title = "Transfer Error"
+    }
+    
+    let alertVC = UIAlertController(title: title, message: "\(statusCode)", preferredStyle: .alert)
+    let action = UIAlertAction(title: "OK", style: .cancel) { (action) in
+      alertVC.dismiss(animated: true, completion: nil)
+    }
+
+    alertVC.addAction(action)
+    present(alertVC, animated: true, completion: nil)
+  }
+}
+// MARK: - TextFieldDelegate
+
+extension AuthoriseViewController: UITextFieldDelegate {
+  func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+    
+    textField.resignFirstResponder()
+    
+    if let loginText = loginTextField.text,
+      let passwordText = passwordTextField.text {
+      
+      if !loginText.isEmpty && !passwordText.isEmpty {
+        signInButtonPressed()
+        return true
+      } else {
+        let alertVC = UIAlertController(title: "Empty Field", message: "Specify Login or Password ", preferredStyle: .alert)
+        let action = UIAlertAction(title: "OK", style: .cancel) { (action) in
+          alertVC.dismiss(animated: true, completion: nil)
+        }
+        
+        alertVC.addAction(action)
+        present(alertVC, animated: true, completion: nil)
+      }
+    }
+    return true
+  }
+}
+// MARK: - Handle Keyboard
+
+extension AuthoriseViewController {
+  private func handleKeyboard() {
+    let tap = UITapGestureRecognizer(target: self, action: #selector(dissmissKeyBoard))
+    view.addGestureRecognizer(tap)
+  }
+  
+  @objc private func dissmissKeyBoard() {
+    view.endEditing(true)
   }
 }

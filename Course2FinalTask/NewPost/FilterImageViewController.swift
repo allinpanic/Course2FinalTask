@@ -7,10 +7,10 @@
 //
 
 import UIKit
-import DataProvider
 
 final class FilterImageViewController: UIViewController {
 // MARK: - Properties
+  var token: String = ""
   
   private var selectedImage: UIImage
   private var index: Int
@@ -70,7 +70,7 @@ final class FilterImageViewController: UIViewController {
     
     setupLayout()
     
-    getThumbnails()
+    generateThumbnails()
     filterCollectionView()
   }
 }
@@ -140,17 +140,31 @@ extension FilterImageViewController {
 
 extension FilterImageViewController {
   @objc private func showAddDescriptionToPost() {
-    self.navigationController?.pushViewController(AddDescriptionViewController(filteredImage: imageViewToFilter.image), animated: true)
+    let addDescriptionViewController = AddDescriptionViewController(filteredImage: imageViewToFilter.image)
+    addDescriptionViewController.token = token
+    self.navigationController?.pushViewController(addDescriptionViewController, animated: true)
   }
 }
 // MARK: - Filter images
 
 extension FilterImageViewController {
   
-  private func getThumbnails() {
+  private func generateThumbnails() {
     thumbnails = []
-    let allImagesArray = DataProviders.shared.photoProvider.thumbnailPhotos()
-    let thumbnail = allImagesArray[index]
+    
+    let uiimage = selectedImage
+    
+    let options = [
+      kCGImageSourceCreateThumbnailWithTransform: true,
+      kCGImageSourceCreateThumbnailFromImageAlways: true,
+      kCGImageSourceThumbnailMaxPixelSize: 60] as CFDictionary
+    
+    guard let imageData = uiimage.pngData(),
+      let imageSource = CGImageSourceCreateWithData(imageData as NSData, nil),
+      let image = CGImageSourceCreateThumbnailAtIndex(imageSource, 0, options)
+      else { return }
+    
+    let thumbnail = UIImage(cgImage: image)
     let count = filters.filterNamesArray.count
     
     for _ in 0...count - 1 {
