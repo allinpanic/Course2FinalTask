@@ -10,11 +10,12 @@ import UIKit
 import SnapKit
 import Kingfisher
 
-protocol FeedPostCellDelegate: NetworkManagerDelegate {
+protocol FeedPostCellDelegate: AnyObject {
   func postHeaderViewTapped(user: User)
   func postImageDoubleTapped(imageView: UIImageView)
   func likesLabelTapped(users: [User], title: String)
   func showAlert()
+  func showAlert(error: NetworkError)
 }
 
 final class FeedPostCell: UITableViewCell {
@@ -148,24 +149,32 @@ extension FeedPostCell {
   @objc private func postHeaderTapped(_ recognizer: UITapGestureRecognizer) {    
     if let userID = post?.author {
       
-      guard let token = token,
-        let userRequest = NetworkManager.shared.getUserRequest(withUserID: userID, token: token) else {return}
+      guard let token = token else {return}
+      
+      let userRequest = NetworkManager.shared.getUserRequest(withUserID: userID, token: token)
       
       NetworkManager.shared.performRequest(request: userRequest,
                                            session: URLSession.shared)
-      { [weak self] (data) in
-        guard let user = NetworkManager.shared.parseJSON(jsonData: data, toType: User.self) else {
+      { [weak self] (result) in
+        
+        switch result {
+          
+        case .success(let data):
+          guard let user = NetworkManager.shared.parseJSON(jsonData: data, toType: User.self) else {return}
           DispatchQueue.main.async {
-            self?.delegate?.showAlert()
+            self?.delegate?.postHeaderViewTapped(user: user)
           }
-          return
-        }
-        DispatchQueue.main.async {
-          self?.delegate?.postHeaderViewTapped(user: user)
+          
+        case .failure(let error):
+          DispatchQueue.main.async {
+            self?.delegate?.showAlert(error: error)
+          }
         }
       }
     }
   }
+ 
+
   
   @objc private func postImageTapped (_ gestureRecognizer: UITapGestureRecognizer) {
     delegate?.postImageDoubleTapped(imageView: bigLikeImageView)
@@ -177,24 +186,28 @@ extension FeedPostCell {
   @objc private func likesCountTapped (_ gestureRecognizer: UITapGestureRecognizer) {
     if let postID = post?.id {
       
-      guard let token = token,
-        let usersLikedRequest = NetworkManager.shared.getUsersLikedPostRequest(withPostID: postID,
-                                                                               token: token) else {
-                                                                               // delegate?.showAlert()
-                                                                                return}
+      guard let token = token else {return}
+      
+      let usersLikedRequest = NetworkManager.shared.getUsersLikedPostRequest(withPostID: postID,
+                                                                             token: token)
       
       NetworkManager.shared.performRequest(request: usersLikedRequest,
                                            session: URLSession.shared)
-      { [weak self] (data) in
-        guard let users = NetworkManager.shared.parseJSON(jsonData: data, toType: [User].self) else {
-          DispatchQueue.main.async {
-            self?.delegate?.showAlert()
-          }
-          return
-        }
+      { [weak self] (result) in
         
-        DispatchQueue.main.async {
-          self?.delegate?.likesLabelTapped(users: users, title: "Likes")
+        switch result {
+          
+        case .success(let data):
+          guard let users = NetworkManager.shared.parseJSON(jsonData: data, toType: [User].self) else {return}
+          
+          DispatchQueue.main.async {
+            self?.delegate?.likesLabelTapped(users: users, title: "Likes")
+          }
+          
+        case .failure(let error):
+          DispatchQueue.main.async {
+            self?.delegate?.showAlert(error: error)
+          }
         }
       }
     }
@@ -204,41 +217,55 @@ extension FeedPostCell {
     if let postID = post?.id {
       if post?.currentUserLikesThisPost == true {
         
-        guard let token = token,
-          let unlikeRequest = NetworkManager.shared.unlikePostRequest(withPostID: postID,
-                                                                      token: token) else {
-                                                                        return}
+        guard let token = token else {return}
+        
+        let unlikeRequest = NetworkManager.shared.unlikePostRequest(withPostID: postID,
+        token: token)
         
         NetworkManager.shared.performRequest(request: unlikeRequest,
                                              session: URLSession.shared)
-        { [weak self] (data) in
-          guard let post = NetworkManager.shared.parseJSON(jsonData: data, toType: Post.self) else {
-            return
-          }
+        { [weak self] (result) in
           
-          DispatchQueue.main.async {
-            self?.post = post
-            self?.postFooter.likeButton.tintColor = .lightGray
+          switch result {
+            
+          case .success(let data):
+            guard let post = NetworkManager.shared.parseJSON(jsonData: data, toType: Post.self) else {return}
+            
+            DispatchQueue.main.async {
+              self?.post = post
+              self?.postFooter.likeButton.tintColor = .lightGray
+            }
+            
+          case .failure(let error):
+            DispatchQueue.main.async {
+              self?.delegate?.showAlert(error: error)
+            }
           }
         }
       } else {
-        guard let token = token,
-          let likeRequest = NetworkManager.shared.likePostRequest(withPostID: postID,
-                                                                      token: token) else {
-                                                                       // delegate?.showAlert()
-                                                                        return}
+        guard let token = token else {return}
+        
+        let likeRequest = NetworkManager.shared.likePostRequest(withPostID: postID,
+                                                                token: token)
         
         NetworkManager.shared.performRequest(request: likeRequest,
                                              session: URLSession.shared)
-        { [weak self] (data) in
-          guard let post = NetworkManager.shared.parseJSON(jsonData: data, toType: Post.self) else {
-            return
-          }
+        { [weak self] (result) in
           
-          
-          DispatchQueue.main.async {
-            self?.post = post
-            self?.postFooter.likeButton.tintColor = .systemBlue
+          switch result {
+            
+          case .success(let data):
+            guard let post = NetworkManager.shared.parseJSON(jsonData: data, toType: Post.self) else {return}
+            
+            DispatchQueue.main.async {
+              self?.post = post
+              self?.postFooter.likeButton.tintColor = .systemBlue
+            }
+            
+          case .failure(let error):
+            DispatchQueue.main.async {
+              self?.delegate?.showAlert(error: error)
+            }
           }
         }
       }
@@ -267,22 +294,26 @@ extension FeedPostCell {
   private func getLikesCount() {
     guard let post = post else {return}
     
-    guard let token = token,
-      let usersLikedRequest = NetworkManager.shared.getUsersLikedPostRequest(withPostID: post.id, token: token) else {
-        print("cannot make users request")
-        return }
+    guard let token = token else {return}
+    
+    let usersLikedRequest = NetworkManager.shared.getUsersLikedPostRequest(withPostID: post.id, token: token)
     
     NetworkManager.shared.performRequest(request: usersLikedRequest, session: URLSession.shared)
-    { [weak self] (data) in
-      guard let users = NetworkManager.shared.parseJSON(jsonData: data, toType: [User].self) else {
-        DispatchQueue.main.async {
-          self?.delegate?.showAlert()
-        }
-        return
-      }
+    { [weak self] (result) in
       
-      DispatchQueue.main.async {
-        self?.likesCount = users.count
+      switch result {
+        
+      case .success(let data):
+        guard let users = NetworkManager.shared.parseJSON(jsonData: data, toType: [User].self) else {return}
+        
+        DispatchQueue.main.async {
+          self?.likesCount = users.count
+        }
+        
+      case .failure(let error):
+        DispatchQueue.main.async {
+          self?.delegate?.showAlert(error: error)
+        }
       }
     }
   }

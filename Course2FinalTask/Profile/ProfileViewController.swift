@@ -149,9 +149,9 @@ extension ProfileViewController: UICollectionViewDataSource, UICollectionViewDel
     return CGSize(width: view.frame.width/3, height: view.frame.width/3)
   }  
 }
-// MARK: - ProfileInfoViewDelegate, NetworkManagerDelegate
+// MARK: - ProfileInfoViewDelegate
 
-extension ProfileViewController: ProfileInfoViewDelegate, NetworkManagerDelegate {
+extension ProfileViewController: ProfileInfoViewDelegate {
   
   func followersTapped(userList: [User], title: String) {
     self.navigationController?.pushViewController(UsersListViewController(userList: userList, title: title, token: token), animated: true)
@@ -171,23 +171,41 @@ extension ProfileViewController: ProfileInfoViewDelegate, NetworkManagerDelegate
     self.present(alert, animated: true, completion: nil)
   }
   
-  func showAlert(statusCode: Int) {
+  func showAlert(error: NetworkError) {
     let title: String
+    let statusCode: Int
     
-    switch statusCode {
-    case 400: title = "Bad Request"
-    case 401: title = "Unathorized"
-    case 404: title = "Not Found"
-    case 406: title = "Not acceptable"
-    case 422: title = "Unprocessable"
-    default: title = "Transfer Error"
+    switch error {
+    case .badRequest(let code):
+      title = "Bad Request"
+      statusCode = code
+      
+    case .unathorized(let code):
+      title = "Unathorized"
+      statusCode = code
+      
+    case .notFound(let code):
+      title = "Not Found"
+      statusCode = code
+      
+    case .notAcceptable(let code):
+      title = "Not acceptable"
+      statusCode = code
+      
+    case .unprocessable(let code):
+      title = "Unprocessable"
+      statusCode = code
+      
+    case .transferError(let code):
+      title = "Transfer Error"
+      statusCode = code
     }
     
     let alertVC = UIAlertController(title: title, message: "\(statusCode)", preferredStyle: .alert)
     let action = UIAlertAction(title: "OK", style: .cancel) { (action) in
       alertVC.dismiss(animated: true, completion: nil)
     }
-
+    
     alertVC.addAction(action)
     present(alertVC, animated: true, completion: nil)
   }
@@ -220,7 +238,7 @@ extension ProfileViewController {
 extension ProfileViewController {
   @objc private func logOutButtonTapped() {
     
-    guard let signOutRequest = NetworkManager.shared.signOutRequest(token: token) else {return}
+    let signOutRequest = NetworkManager.shared.signOutRequest(token: token)
     
     NetworkManager.shared.performRequest(request: signOutRequest,
                                          session: session)
@@ -233,23 +251,30 @@ extension ProfileViewController {
   }
   
   private func configureLogOutButton() {
-    guard let currentUserRequest = NetworkManager.shared.currentUserRequest(token: token) else {
-      showAlert()
-      return}
+    let currentUserRequest = NetworkManager.shared.currentUserRequest(token: token)
     
     NetworkManager.shared.performRequest(request: currentUserRequest,
                                          session: session)
-    { [weak self] (data) in
-      guard let currenUser = NetworkManager.shared.parseJSON(jsonData: data, toType: User.self) else {return}
+    { [weak self] (result) in
       
-      if self?.user?.id == currenUser.id  {
+      switch result {
+      case .success(let data):
+        guard let currenUser = NetworkManager.shared.parseJSON(jsonData: data, toType: User.self) else {return}
+        
+        if self?.user?.id == currenUser.id  {
+          DispatchQueue.main.async {
+            let logOutButton = UIBarButtonItem(title: "Log Out",
+                                               style: .plain,
+                                               target: self,
+                                               action: #selector(self?.logOutButtonTapped))
+            
+            self?.navigationItem.rightBarButtonItem = logOutButton
+          }
+        }
+        
+      case .failure(let error):
         DispatchQueue.main.async {
-          let logOutButton = UIBarButtonItem(title: "Log Out",
-                                             style: .plain,
-                                             target: self,
-                                             action: #selector(self?.logOutButtonTapped))
-          
-          self?.navigationItem.rightBarButtonItem = logOutButton
+          self?.showAlert(error: error)
         }
       }
     }
@@ -262,16 +287,26 @@ extension ProfileViewController {
     
     guard let user = user else {return}
     
-    guard let userPostsRequest = NetworkManager.shared.getPostsByUserRequest(withUserID: user.id, token: token) else {return}
+   let userPostsRequest = NetworkManager.shared.getPostsByUserRequest(withUserID: user.id, token: token)
     
     NetworkManager.shared.performRequest(request: userPostsRequest, session: session) {
-      [weak self] (data) in
-      guard let posts = NetworkManager.shared.parseJSON(jsonData: data, toType: [Post].self) else {return}
+      [weak self] (result) in
       
-      self?.userPosts = posts.reversed()
-      DispatchQueue.main.async {
-        self?.userImagesCollectionView.reloadData()
-        self?.hideIndicator()
+      switch result {
+        
+      case .success(let data):
+        guard let posts = NetworkManager.shared.parseJSON(jsonData: data, toType: [Post].self) else {return}
+        
+        self?.userPosts = posts.reversed()
+        DispatchQueue.main.async {
+          self?.userImagesCollectionView.reloadData()
+          self?.hideIndicator()
+        }
+        
+      case .failure(let error):
+        DispatchQueue.main.async {
+          self?.showAlert(error: error)
+        }
       }
     }
   }

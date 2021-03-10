@@ -57,7 +57,6 @@ final class AuthoriseViewController: UIViewController {
   
   override func viewDidLoad() {
     super.viewDidLoad()
-    NetworkManager.shared.delegate = self
     
     view.backgroundColor = .white
     
@@ -120,21 +119,40 @@ extension AuthoriseViewController {
                                                                   password: passwordText) else {return}
     
     NetworkManager.shared.performRequest(request: signInRequest, session: session) {
-      [weak self] (data) in
+      [weak self] (result) in
       
-      guard let tokenSelf = NetworkManager.shared.parseJSON(jsonData: data, toType: Token.self) else {return}
-      
-      guard let currentUserRequest = NetworkManager.shared.currentUserRequest(token: tokenSelf.token) else {return}
-      guard let session = self?.session else {return}
-      
-      NetworkManager.shared.performRequest(request: currentUserRequest,
-                                           session: session)
-      { [weak self] (data) in
-        guard let currenUser = NetworkManager.shared.parseJSON(jsonData: data, toType: User.self) else {return}
+      switch result {
         
+      case .success(let data):
+        guard let tokenSelf = NetworkManager.shared.parseJSON(jsonData: data, toType: Token.self) else {return}
+        
+        let currentUserRequest = NetworkManager.shared.currentUserRequest(token: tokenSelf.token)
+        guard let session = self?.session else {return}
+        
+        NetworkManager.shared.performRequest(request: currentUserRequest,
+                                             session: session)
+        { [weak self] (result) in
+          
+          switch result {
+            
+          case .success(let data):
+            guard let currenUser = NetworkManager.shared.parseJSON(jsonData: data, toType: User.self) else {return}
+            
+            DispatchQueue.main.async {
+              let tabBarController = self?.instansiateMainViewController(currentUser: currenUser, token: tokenSelf.token)
+              UIApplication.shared.windows.first?.rootViewController = tabBarController
+            }
+            
+          case .failure(let error):
+            DispatchQueue.main.async {
+              self?.showAlert(error: error)
+            }
+          }
+        }
+        
+      case .failure(let error):
         DispatchQueue.main.async {
-          let tabBarController = self?.instansiateMainViewController(currentUser: currenUser, token: tokenSelf.token)
-          UIApplication.shared.windows.first?.rootViewController = tabBarController
+          self?.showAlert(error: error)
         }
       }
     }
@@ -167,26 +185,45 @@ extension AuthoriseViewController {
     return tabBarController
   }
 }
-// MARK: - NetworkMAnagerDelegate
+// MARK: - Show Alert
 
-extension AuthoriseViewController: NetworkManagerDelegate {
-  func showAlert(statusCode: Int) {
+extension AuthoriseViewController {
+  
+  func showAlert(error: NetworkError) {
     let title: String
+    let statusCode: Int
     
-    switch statusCode {
-    case 400: title = "Bad Request"
-    case 401: title = "Unathorized"
-    case 404: title = "Not Found"
-    case 406: title = "Not acceptable"
-    case 422: title = "Unprocessable"
-    default: title = "Transfer Error"
+    switch error {
+    case .badRequest(let code):
+      title = "Bad Request"
+      statusCode = code
+      
+    case .unathorized(let code):
+      title = "Unathorized"
+      statusCode = code
+      
+    case .notFound(let code):
+      title = "Not Found"
+      statusCode = code
+      
+    case .notAcceptable(let code):
+      title = "Not acceptable"
+      statusCode = code
+      
+    case .unprocessable(let code):
+      title = "Unprocessable"
+      statusCode = code
+      
+    case .transferError(let code):
+      title = "Transfer Error"
+      statusCode = code
     }
     
     let alertVC = UIAlertController(title: title, message: "\(statusCode)", preferredStyle: .alert)
     let action = UIAlertAction(title: "OK", style: .cancel) { (action) in
       alertVC.dismiss(animated: true, completion: nil)
     }
-
+    
     alertVC.addAction(action)
     present(alertVC, animated: true, completion: nil)
   }

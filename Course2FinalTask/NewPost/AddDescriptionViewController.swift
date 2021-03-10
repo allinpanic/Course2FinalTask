@@ -90,10 +90,19 @@ extension AddDescriptionViewController {
     
     NetworkManager.shared.performRequest(request: addPostRequest,
                                          session: URLSession.shared)
-    { [weak self] (data) in
-      DispatchQueue.main.async {
-        self?.tabBarController?.selectedIndex = 0
-        self?.navigationController?.popToRootViewController(animated: true)
+    { [weak self] (result) in
+      
+      switch result {
+      case .success(_):
+        DispatchQueue.main.async {
+          self?.tabBarController?.selectedIndex = 0
+          self?.navigationController?.popToRootViewController(animated: true)
+        }
+        
+      case .failure(let error):
+        DispatchQueue.main.async {
+          self?.showAlert(error: error)
+        }
       }
     }
   }
@@ -109,4 +118,44 @@ extension AddDescriptionViewController {
   @objc private func dissmissKeyBoard() {
     view.endEditing(true)
   }
+  
+  func showAlert(error: NetworkError) {
+    let title: String
+    let statusCode: Int
+    
+    switch error {
+    case .badRequest(let code):
+      title = "Bad Request"
+      statusCode = code
+      
+    case .unathorized(let code):
+      title = "Unathorized"
+      statusCode = code
+      
+    case .notFound(let code):
+      title = "Not Found"
+      statusCode = code
+      
+    case .notAcceptable(let code):
+      title = "Not acceptable"
+      statusCode = code
+      
+    case .unprocessable(let code):
+      title = "Unprocessable"
+      statusCode = code
+      
+    case .transferError(let code):
+      title = "Transfer Error"
+      statusCode = code
+    }
+    
+    let alertVC = UIAlertController(title: title, message: "\(statusCode)", preferredStyle: .alert)
+    let action = UIAlertAction(title: "OK", style: .cancel) { (action) in
+      alertVC.dismiss(animated: true, completion: nil)
+    }
+    
+    alertVC.addAction(action)
+    present(alertVC, animated: true, completion: nil)
+  }
 }
+

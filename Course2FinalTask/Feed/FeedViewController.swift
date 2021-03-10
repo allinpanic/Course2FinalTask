@@ -11,7 +11,7 @@ import UIKit
 final class FeedViewController: UIViewController {
 //MARK: - Properties
   private let session = URLSession.shared
-  let token: String
+  private let token: String
   
   private lazy var feedTableView: UITableView = {
     let tableView = UITableView()
@@ -52,7 +52,6 @@ final class FeedViewController: UIViewController {
     super.viewDidLoad()
 
     feedTableView.dataSource = self
-    NetworkManager.shared.delegate = self
     setupLayout()
   }
 //MARK: - ViewWillAppear
@@ -62,7 +61,6 @@ final class FeedViewController: UIViewController {
 
     showIndicator()
     getPosts()
-
   }
 }
 
@@ -165,36 +163,62 @@ extension FeedViewController {
 extension FeedViewController {
   private func getPosts() {
     
-    guard let postsRequest = NetworkManager.shared.getFeedRequest(token: token) else {
-      print("cannot make feed request")
-      return}
+    let postsRequest = NetworkManager.shared.getFeedRequest(token: token)
     
     NetworkManager.shared.performRequest(request: postsRequest, session: session) {
-      [weak self] (data) in
-      guard let posts = NetworkManager.shared.parseJSON(jsonData: data, toType: [Post].self) else {return}
+      [weak self] (result) in
       
-      self?.posts = posts
-      
-      DispatchQueue.main.async {
-        self?.feedTableView.reloadData()
-        self?.hideIndicator()
+      switch result {
+        
+      case .success(let data):
+        guard let posts = NetworkManager.shared.parseJSON(jsonData: data, toType: [Post].self) else {return}
+        
+        self?.posts = posts
+        
+        DispatchQueue.main.async {
+          self?.feedTableView.reloadData()
+          self?.hideIndicator()
+        }
+        
+      case .failure(let error):
+        DispatchQueue.main.async {
+          self?.showAlert(error: error)
+        }
       }
     }
   }
 }
-// MARK: - NetworkManager Delegate
+// MARK: - Show alert
 
-extension FeedViewController: NetworkManagerDelegate {
-  func showAlert(statusCode: Int) {
+extension FeedViewController {
+  func showAlert(error: NetworkError) {
     let title: String
+    let statusCode: Int
     
-    switch statusCode {
-    case 400: title = "Bad Request"
-    case 401: title = "Unathorized"
-    case 404: title = "Not Found"
-    case 406: title = "Not acceptable"
-    case 422: title = "Unprocessable"
-    default: title = "Transfer Error"
+    switch error {
+    case .badRequest(let code):
+      title = "Bad Request"
+      statusCode = code
+      
+    case .unathorized(let code):
+      title = "Unathorized"
+      statusCode = code
+      
+    case .notFound(let code):
+      title = "Not Found"
+      statusCode = code
+      
+    case .notAcceptable(let code):
+      title = "Not acceptable"
+      statusCode = code
+      
+    case .unprocessable(let code):
+      title = "Unprocessable"
+      statusCode = code
+      
+    case .transferError(let code):
+      title = "Transfer Error"
+      statusCode = code
     }
     
     let alertVC = UIAlertController(title: title, message: "\(statusCode)", preferredStyle: .alert)

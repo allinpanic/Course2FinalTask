@@ -9,9 +9,9 @@
 import UIKit
 
 final class NewPostViewController: UIViewController {
-  var minImages: [UIImage?] = []
-  let reusableCellID = "smallImageCell"
-  var token: String
+  private var minImages: [UIImage?] = []
+  private let reusableCellID = "smallImageCell"
+  private var token: String
   
   private lazy var imagesCollectionView: UICollectionView = {
     let layout = UICollectionViewFlowLayout()
