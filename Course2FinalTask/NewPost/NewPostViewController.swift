@@ -9,6 +9,8 @@
 import UIKit
 
 final class NewPostViewController: UIViewController {
+  var networkMode: NetworkMode = .online
+  
   private var minImages: [UIImage?] = []
   private let reusableCellID = "smallImageCell"
   private var token: String
@@ -77,6 +79,7 @@ extension NewPostViewController: UICollectionViewDataSource, UICollectionViewDel
     if let image = minImages[indexPath.row] {
       let filterImageViewController = FilterImageViewController(image: image, index: indexPath.row)
       filterImageViewController.token = token
+      filterImageViewController.networkMode = networkMode
       self.navigationController?.pushViewController(filterImageViewController, animated: true)
     }
   }

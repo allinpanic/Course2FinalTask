@@ -9,6 +9,9 @@
 import UIKit
 
 final class FeedViewController: UIViewController {
+  var networkMode: NetworkMode = .online
+  var dataManager: CoreDataManager!
+  
 //MARK: - Properties
   private let session = URLSession.shared
   private let token: String
@@ -36,7 +39,7 @@ final class FeedViewController: UIViewController {
   }()
   
   private let reuseIdentifier = "postCell"
-  private var posts: [Post] = []
+  private var posts: [PostStruct] = []
   
   init(token: String) {
     self.token = token
@@ -94,22 +97,12 @@ extension FeedViewController: UITableViewDataSource {
 //MARK: - PostCell Delegate methods
 
 extension FeedViewController: FeedPostCellDelegate {
-  func showAlert() {
-    let alert = UIAlertController(title: "Unknokn error!",
-                                  message: "Please, try again later",
-                                  preferredStyle: .alert)
-    
-    let alertAction = UIAlertAction(title: "OK",
-                                    style: .default,
-                                    handler: { action in
-                                      alert.dismiss(animated: true, completion: nil)
-    })
-    alert.addAction(alertAction)
-    present(alert, animated: true, completion: nil)
-  }
   
-  func postHeaderViewTapped(user: User) {
-    self.navigationController?.pushViewController(ProfileViewController(user: user, token: token), animated: true)
+  func postHeaderViewTapped(user: UserStruct) {
+    let profileViewController = ProfileViewController(user: user, token: token)
+    profileViewController.dataManager = dataManager
+    profileViewController.networkMode = networkMode
+    self.navigationController?.pushViewController(profileViewController, animated: true)
   }
   
   func postImageDoubleTapped(imageView: UIImageView) {
@@ -117,7 +110,7 @@ extension FeedViewController: FeedPostCellDelegate {
     animateImage(imageView: imageView)
   }
   
-  func likesLabelTapped(users: [User], title: String) {
+  func likesLabelTapped(users: [UserStruct], title: String) {
     self.navigationController?.pushViewController(UsersListViewController(userList: users, title: title, token: token), animated: true)
   }
 }
@@ -163,70 +156,82 @@ extension FeedViewController {
 extension FeedViewController {
   private func getPosts() {
     
-    let postsRequest = NetworkManager.shared.getFeedRequest(token: token)
-    
-    NetworkManager.shared.performRequest(request: postsRequest, session: session) {
-      [weak self] (result) in
+    switch networkMode {
+    case .online:
+      let postsRequest = NetworkManager.shared.getFeedRequest(token: token)
       
-      switch result {
+      NetworkManager.shared.performRequest(request: postsRequest, session: session) {
+        [weak self] (result) in
         
-      case .success(let data):
-        guard let posts = NetworkManager.shared.parseJSON(jsonData: data, toType: [Post].self) else {return}
-        
-        self?.posts = posts
-        
-        DispatchQueue.main.async {
-          self?.feedTableView.reloadData()
-          self?.hideIndicator()
-        }
-        
-      case .failure(let error):
-        DispatchQueue.main.async {
-          self?.showAlert(error: error)
+        switch result {
+          
+        case .success(let data):
+          guard let posts = NetworkManager.shared.parseJSON(jsonData: data, toType: [PostStruct].self) else {return}
+          
+          self?.posts = posts
+
+          DispatchQueue.main.async {
+            self?.feedTableView.reloadData()
+            self?.hideIndicator()
+          }
+          
+          self?.dataManager.bgContext.performAndWait {
+            for post in posts {
+              guard let bgContext = self?.dataManager.bgContext,
+              
+                    let postObject = self?.dataManager.createObject(from: Post.self, context: bgContext) else {return}
+              postObject.id = post.id
+              postObject.author = post.author
+              postObject.authorAvatar = post.authorAvatar
+              postObject.authorUserName = post.authorUsername
+              postObject.createdTime = post.createdTime
+              postObject.currentUserLikesThisPost = post.currentUserLikesThisPost
+              postObject.descript = post.description
+              postObject.image = post.image
+              
+              self?.dataManager.save(context: bgContext)
+            }
+          }
+          
+        case .failure(let error):
+          DispatchQueue.main.async {
+            self?.showAlert(error: error)
+          }
         }
       }
-    }
-  }
-}
-// MARK: - Show alert
-
-extension FeedViewController {
-  func showAlert(error: NetworkError) {
-    let title: String
-    let statusCode: Int
-    
-    switch error {
-    case .badRequest(let code):
-      title = "Bad Request"
-      statusCode = code
       
-    case .unathorized(let code):
-      title = "Unathorized"
-      statusCode = code
       
-    case .notFound(let code):
-      title = "Not Found"
-      statusCode = code
       
-    case .notAcceptable(let code):
-      title = "Not acceptable"
-      statusCode = code
+    case .offline:
+      print("get posts from core data")
       
-    case .unprocessable(let code):
-      title = "Unprocessable"
-      statusCode = code
+      //
+      // redo to get posts from core data
       
-    case .transferError(let code):
-      title = "Transfer Error"
-      statusCode = code
     }
     
-    let alertVC = UIAlertController(title: title, message: "\(statusCode)", preferredStyle: .alert)
-    let action = UIAlertAction(title: "OK", style: .cancel) { (action) in
-      alertVC.dismiss(animated: true, completion: nil)
-    }
-    
-    alertVC.addAction(action)
-    present(alertVC, animated: true, completion: nil)
+//    let postsRequest = NetworkManager.shared.getFeedRequest(token: token)
+//
+//    NetworkManager.shared.performRequest(request: postsRequest, session: session) {
+//      [weak self] (result) in
+//
+//      switch result {
+//
+//      case .success(let data):
+//        guard let posts = NetworkManager.shared.parseJSON(jsonData: data, toType: [PostStruct].self) else {return}
+//
+//        self?.posts = posts
+//
+//        DispatchQueue.main.async {
+//          self?.feedTableView.reloadData()
+//          self?.hideIndicator()
+//        }
+//
+//      case .failure(let error):
+//        DispatchQueue.main.async {
+//          self?.showAlert(error: error)
+//        }
+//      }
+//    }
   }
 }

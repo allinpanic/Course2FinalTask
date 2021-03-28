@@ -154,7 +154,7 @@ final class NetworkManager {
     
     let dataTask = session.dataTask(with: request) { data, response, error in
       if let error = error {
-        print(error.localizedDescription)
+        completionHandler(.failure(.error(error.localizedDescription)))
         return
       }
       

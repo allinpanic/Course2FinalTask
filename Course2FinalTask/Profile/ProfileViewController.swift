@@ -10,12 +10,17 @@ import UIKit
 
 final class ProfileViewController: UIViewController {
 
-  var user: User?
+  var user: UserStruct?
+  var networkMode: NetworkMode = .online
+  var dataManager: CoreDataManager!
+  
 // MARK: - Private properties
   
   private var token: String
   private let session = URLSession.shared
-  private var userPosts: [Post]?
+  private var userPosts: [PostStruct]?
+  
+  private let keychainManager = KeychainManager()
   
   private var reuseIdentifier = "imageCell"
   
@@ -41,6 +46,7 @@ final class ProfileViewController: UIViewController {
     let profileInfo = ProfileInfoView()
     profileInfo.backgroundColor = .white
     profileInfo.delegate = self
+    profileInfo.networkMode = self.networkMode
     return profileInfo
   }()
   
@@ -58,7 +64,7 @@ final class ProfileViewController: UIViewController {
   }()
 // MARK: - Inits
   
-  init (user: User?, token: String) {
+  init (user: UserStruct?, token: String) {
     self.user = user
     self.token = token
     super.init(nibName: nil, bundle: nil)
@@ -153,61 +159,12 @@ extension ProfileViewController: UICollectionViewDataSource, UICollectionViewDel
 
 extension ProfileViewController: ProfileInfoViewDelegate {
   
-  func followersTapped(userList: [User], title: String) {
+  func followersTapped(userList: [UserStruct], title: String) {
     self.navigationController?.pushViewController(UsersListViewController(userList: userList, title: title, token: token), animated: true)
   }
   
-  func followingTapped(userList: [User], title: String) {
+  func followingTapped(userList: [UserStruct], title: String) {
     self.navigationController?.pushViewController(UsersListViewController(userList: userList, title: title, token: token), animated: true)
-  }
-  
-  func showAlert() {
-    let alert = UIAlertController(title: "Unknown Error", message: "Please, try again later", preferredStyle: .alert)
-    alert.addAction(UIAlertAction(title: "OK", style: .default, handler: {
-      [weak self] action in
-      alert.dismiss(animated: true, completion: nil)
-      self?.navigationController?.popViewController(animated: true)
-    }))
-    self.present(alert, animated: true, completion: nil)
-  }
-  
-  func showAlert(error: NetworkError) {
-    let title: String
-    let statusCode: Int
-    
-    switch error {
-    case .badRequest(let code):
-      title = "Bad Request"
-      statusCode = code
-      
-    case .unathorized(let code):
-      title = "Unathorized"
-      statusCode = code
-      
-    case .notFound(let code):
-      title = "Not Found"
-      statusCode = code
-      
-    case .notAcceptable(let code):
-      title = "Not acceptable"
-      statusCode = code
-      
-    case .unprocessable(let code):
-      title = "Unprocessable"
-      statusCode = code
-      
-    case .transferError(let code):
-      title = "Transfer Error"
-      statusCode = code
-    }
-    
-    let alertVC = UIAlertController(title: title, message: "\(statusCode)", preferredStyle: .alert)
-    let action = UIAlertAction(title: "OK", style: .cancel) { (action) in
-      alertVC.dismiss(animated: true, completion: nil)
-    }
-    
-    alertVC.addAction(action)
-    present(alertVC, animated: true, completion: nil)
   }
 }
 //MARK: - Activity indicator methods
@@ -238,6 +195,9 @@ extension ProfileViewController {
 extension ProfileViewController {
   @objc private func logOutButtonTapped() {
     
+    let deletingresult = keychainManager.deleteToken(service: "courseTask", account: nil)
+    print(deletingresult)
+    
     let signOutRequest = NetworkManager.shared.signOutRequest(token: token)
     
     NetworkManager.shared.performRequest(request: signOutRequest,
@@ -259,9 +219,12 @@ extension ProfileViewController {
       
       switch result {
       case .success(let data):
-        guard let currenUser = NetworkManager.shared.parseJSON(jsonData: data, toType: User.self) else {return}
+        guard let currenUser = NetworkManager.shared.parseJSON(jsonData: data, toType: UserStruct.self) else {return}
         
         if self?.user?.id == currenUser.id  {
+          
+          self?.saveCurrUserPosts(currUserID: currenUser.id)
+          
           DispatchQueue.main.async {
             let logOutButton = UIBarButtonItem(title: "Log Out",
                                                style: .plain,
@@ -285,6 +248,10 @@ extension ProfileViewController {
 extension ProfileViewController {
   private func getUserPosts() {
     
+    
+    switch networkMode {
+    case .online:
+    
     guard let user = user else {return}
     
    let userPostsRequest = NetworkManager.shared.getPostsByUserRequest(withUserID: user.id, token: token)
@@ -295,7 +262,7 @@ extension ProfileViewController {
       switch result {
         
       case .success(let data):
-        guard let posts = NetworkManager.shared.parseJSON(jsonData: data, toType: [Post].self) else {return}
+        guard let posts = NetworkManager.shared.parseJSON(jsonData: data, toType: [PostStruct].self) else {return}
         
         self?.userPosts = posts.reversed()
         DispatchQueue.main.async {
@@ -309,5 +276,53 @@ extension ProfileViewController {
         }
       }
     }
+    
+    
+    case .offline:
+    print("get posts from database")
+    
+    // TODO: get posts from database
+    
+    }
+  }
+}
+
+extension ProfileViewController {
+  private func saveCurrUserPosts(currUserID: String) {
+    
+    let userPostsRequest = NetworkManager.shared.getPostsByUserRequest(withUserID: currUserID, token: token)
+     
+     NetworkManager.shared.performRequest(request: userPostsRequest, session: session) {
+       [weak self] (result) in
+       
+       switch result {
+         
+       case .success(let data):
+        guard let posts = NetworkManager.shared.parseJSON(jsonData: data, toType: [PostStruct].self) else {return}
+        
+        self?.dataManager.bgContext.performAndWait {
+          for post in posts {
+            guard let bgContext = self?.dataManager.bgContext,
+                  let postObject = self?.dataManager.createObject(from: Post.self, context: bgContext) else {return}
+            
+            postObject.id = post.id
+            postObject.author = post.author
+            postObject.authorAvatar = post.authorAvatar
+            postObject.authorUserName = post.authorUsername
+            postObject.createdTime = post.createdTime
+            postObject.currentUserLikesThisPost = post.currentUserLikesThisPost
+            postObject.descript = post.description
+            postObject.image = post.image
+            print("saving userPosts")
+            self?.dataManager.save(context: bgContext)
+          }
+        }
+        
+       case .failure(let error):
+         DispatchQueue.main.async {
+           self?.showAlert(error: error)
+         }
+       }
+     }
   }
 }

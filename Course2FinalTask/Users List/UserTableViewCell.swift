@@ -9,7 +9,7 @@
 import UIKit
 
 final class UserTableViewCell: UITableViewCell {
-  var user: User?
+  var user: UserStruct?
   
   private var userAvatarImageView: UIImageView = {
     let imageView = UIImageView()

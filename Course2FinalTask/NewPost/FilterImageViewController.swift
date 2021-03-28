@@ -11,6 +11,7 @@ import UIKit
 final class FilterImageViewController: UIViewController {
 // MARK: - Properties
   var token: String = ""
+  var networkMode: NetworkMode = .online
   
   private var selectedImage: UIImage
   private var index: Int
@@ -142,6 +143,7 @@ extension FilterImageViewController {
   @objc private func showAddDescriptionToPost() {
     let addDescriptionViewController = AddDescriptionViewController(filteredImage: imageViewToFilter.image)
     addDescriptionViewController.token = token
+    addDescriptionViewController.networkMode = networkMode
     self.navigationController?.pushViewController(addDescriptionViewController, animated: true)
   }
 }
@@ -201,14 +203,14 @@ extension FilterImageViewController {
     dimmedView.snp.makeConstraints{
       $0.edges.equalToSuperview()
     }
-    
+
     dimmedView.addSubview(indicator)
     indicator.startAnimating()
     indicator.snp.makeConstraints{
       $0.center.equalToSuperview()
     }
   }
-  
+
   private func hideIndicator() {
     indicator.stopAnimating()
     indicator.hidesWhenStopped = true
