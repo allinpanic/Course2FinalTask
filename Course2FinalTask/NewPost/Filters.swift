@@ -28,6 +28,14 @@ class Filters {
       parameters = [kCIInputImageKey: ciimage, kCIInputColorKey: CIColor.white, kCIInputIntensityKey: 0.6]
     case "CIVignetteEffect":
       parameters = [kCIInputImageKey: ciimage, kCIInputIntensityKey: 0.2, kCIInputRadiusKey: 0.5]
+    case "CIPhotoEffectChrome":
+      parameters = [kCIInputImageKey: ciimage]
+    case "CIColorPosterize":
+      parameters = [kCIInputImageKey: ciimage]
+    case "CIColorInvert":
+      parameters = [kCIInputImageKey: ciimage]
+    case "CISepiaTone":
+      parameters = [kCIInputImageKey: ciimage]
     default:
       parameters = [kCIInputImageKey: ciimage]
     }

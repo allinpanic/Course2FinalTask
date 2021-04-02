@@ -17,4 +17,6 @@ struct PostStruct: Codable {
   var author: String
   var authorUsername: String
   var authorAvatar: String
+  
+  var likesCount: Int?
 }

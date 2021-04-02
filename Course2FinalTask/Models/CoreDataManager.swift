@@ -7,6 +7,7 @@
 //
 
 import CoreData
+import UIKit
 
 final class CoreDataManager {
   private let modelName: String
@@ -15,7 +16,7 @@ final class CoreDataManager {
     self.modelName = modelName
   }
   
-  lazy var persistentContainer: NSPersistentContainer = {
+  private lazy var persistentContainer: NSPersistentContainer = {
     let container = NSPersistentContainer(name: modelName)
     
     container.loadPersistentStores { (storeDescriptor, error) in
@@ -37,9 +38,6 @@ final class CoreDataManager {
     return persistentContainer.viewContext
   }
   
-//  func getBackgroundContext() -> NSManagedObjectContext {
-//    return persistentContainer.newBackgroundContext()
-//  }
   func createObject<T: NSManagedObject>(from entity: T.Type, context: NSManagedObjectContext) -> T {
     let object = NSEntityDescription.insertNewObject(forEntityName: String(describing: entity), into: context) as! T
     
@@ -50,7 +48,6 @@ final class CoreDataManager {
     if context.hasChanges {
       do {
         try context.save()
-        print("context saved")
       } catch {
         let nserror = error as NSError
         fatalError("unresolved error \(nserror), \(nserror.userInfo)")
@@ -58,13 +55,24 @@ final class CoreDataManager {
     }
   }
   
-//  func delete(object: NSManagedObject) {
-//    let context = getViewContext()
-//    context.delete(object)
-//    save(context: context)
-//  }
+  func delete(object: NSManagedObject, context: NSManagedObjectContext) {
+    context.delete(object)
+    save(context: context)
+  }
   
-  func fetchData<T: NSManagedObject> (for entity: T.Type, predicate: NSCompoundPredicate? = nil) -> [T] {
+  func deleteAll<T: NSManagedObject>(entity: T.Type) {
+    let entityName = String(describing: entity)
+    let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: entityName)
+    let batchRequest = NSBatchDeleteRequest(fetchRequest: fetchRequest)
+    
+    do {
+      try bgContext.execute(batchRequest)
+    } catch {
+      fatalError("Failed to execute request: \(error)")
+    }
+  }
+  
+  func fetchData<T: NSManagedObject> (for entity: T.Type, predicate: NSPredicate? = nil, sortDescriptor: NSSortDescriptor?) -> [T] {
     
     let context = getViewContext()
     
@@ -74,11 +82,11 @@ final class CoreDataManager {
     let entityName = String(describing: entity)
     request = NSFetchRequest(entityName: entityName)
     
-    //  let dateDescriptor = NSSortDescriptor(key: "date", ascending: true, selector: #selector(NSString.localizedStandardCompare(_:)))
-    //
-    
     request.predicate = predicate
-//    request.sortDescriptors = [dateSortDescriptor]
+    
+    if let sortDescriptor = sortDescriptor {
+      request.sortDescriptors = [sortDescriptor]
+    }
     
     do {
       fetchedResult = try context.fetch(request)
@@ -89,9 +97,52 @@ final class CoreDataManager {
     return fetchedResult
   }
   
-
+  func savePost(post: PostStruct, likesCount: Int? = nil) {
+    bgContext.performAndWait {
+      let postObject = createObject(from: Post.self, context: bgContext)
+      
+      postObject.id = post.id
+      postObject.author = post.author
+      postObject.authorUserName = post.authorUsername
+      postObject.createdTime = post.createdTime
+      postObject.currentUserLikesThisPost = post.currentUserLikesThisPost
+      postObject.descript = post.description
+      
+      guard let avatarURL = URL(string: post.authorAvatar),
+            let postImageURL = URL(string: post.image) else {return}
+      
+      guard let authorAvatarData = try? Data(contentsOf: avatarURL),
+            let imageData = try? Data(contentsOf: postImageURL) else {return}
+      
+      postObject.image = imageData
+      postObject.authorAvatar = authorAvatarData
+      
+      guard let likesCount = likesCount else {return}
+      postObject.likedByCount = Int16(likesCount)
+      
+      save(context: bgContext)
+    }
+  }
   
-  
-  
+  func saveCurrentUser(currUser: UserStruct) {
+    bgContext.performAndWait {
+      
+      let userObject = createObject(from: User.self, context: bgContext)
+      userObject.id = currUser.id
+      userObject.currentUserFollowsThisUser = currUser.currentUserFollowsThisUser
+      userObject.currentUserIsFollowedByThisUser = currUser.currentUserIsFollowedByThisUser
+      userObject.followedByCount = Int16(currUser.followedByCount)
+      userObject.followsCount = Int16(currUser.followsCount)
+      userObject.fullName = currUser.fullName
+      userObject.userName = currUser.username
+      
+      guard let avatarURL = URL(string: currUser.avatar),
+            let avatarData = try? Data(contentsOf: avatarURL) else {return}
+      
+      userObject.avatar = avatarData
+      
+      save(context: bgContext)
+    }
+  }
 }
 

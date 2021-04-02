@@ -150,7 +150,7 @@ final class NetworkManager {
   
   func performRequest(request: URLRequest,
                       session: URLSession,
-                      completionHandler: @escaping (Result<Data ,NetworkError>) -> Void) {
+                      completionHandler: @escaping (Result<Data, NetworkError>) -> Void) {
     
     let dataTask = session.dataTask(with: request) { data, response, error in
       if let error = error {
@@ -159,7 +159,7 @@ final class NetworkManager {
       }
       
       if let httpResponse = response as? HTTPURLResponse {
-
+        
         switch httpResponse.statusCode {
         case 200 :
           guard let data = data else {return}
@@ -185,10 +185,8 @@ final class NetworkManager {
   func parseJSON<T: Codable>(jsonData: Data, toType: T.Type) -> T? {
     let decoder = JSONDecoder()
     
-    guard let result = try? decoder.decode(T.self, from: jsonData) else {
-      print("data decoding failed")
-      return nil
-    }
+    guard let result = try? decoder.decode(T.self, from: jsonData) else {return nil}
+    
     return result
   }
 }

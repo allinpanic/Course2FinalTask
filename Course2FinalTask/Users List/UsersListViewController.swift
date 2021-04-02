@@ -9,8 +9,6 @@
 import UIKit
 
 final class UsersListViewController: UIViewController {
-  
-  //var networkMode: NetworkMode = .online
 
   private let token: String
   

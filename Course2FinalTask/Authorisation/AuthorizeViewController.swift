@@ -6,9 +6,7 @@
 //  Copyright © 2020 e-Legion. All rights reserved.
 //
 
-import Foundation
 import UIKit
-
 
 final class AuthoriseViewController: UIViewController {
   // MARK: - Private Properties
@@ -78,7 +76,6 @@ final class AuthoriseViewController: UIViewController {
     setupLayout()
     
     if let token = keychainManager.readToken(service: "courseTask", account: nil)  {
-      print("token is in keychain")
       showIndicator()
       checkToken(token: token)
     }
@@ -94,90 +91,57 @@ final class AuthoriseViewController: UIViewController {
 extension AuthoriseViewController {
   private func checkToken(token: String) {
     let currentUserRequest = NetworkManager.shared.currentUserRequest(token: token)
-    print("checking token")
     
     NetworkManager.shared.performRequest(request: currentUserRequest,
                                          session: session)
     { [weak self] (result) in
-      
       switch result {
         
       case .success(let data):
-        guard let currentUser = NetworkManager.shared.parseJSON(jsonData: data, toType: UserStruct.self) else {return}
-        
-        self?.saveUser(currUser: currentUser)
+        guard let currentUser = NetworkManager.shared.parseJSON(jsonData: data,
+                                                                toType: UserStruct.self) else {return}
         
         DispatchQueue.main.async {
           self?.hideIndicator()
           
-          let tabBarController = self?.instansiateMainViewController(currentUser: currentUser, token: token, networkMode: .online)
+          let tabBarController = self?.instansiateMainViewController(currentUser: currentUser,
+                                                                     token: token,
+                                                                     networkMode: .online)
           UIApplication.shared.windows.first?.rootViewController = tabBarController
         }
         
       case .failure(let error):
         switch error {
+        
         case .unathorized(_):
           let deletingResult = self?.keychainManager.deleteToken(service: "courseTask", account: nil)
           if deletingResult! {
             print("token deleted")
           }
           
+          self?.dataManager.deleteAll(entity: Post.self)
+          self?.dataManager.deleteAll(entity: User.self)
+          
           DispatchQueue.main.async {
             self?.hideIndicator()
           }
           
-        default:
-          
-          print("go offline")
-          
+        default:          
           DispatchQueue.main.async {
             self?.hideIndicator()
+            let converter = Converter()
             
-            // get current user from database
+            guard let currUser = (self?.dataManager.fetchData(for: User.self, sortDescriptor: nil))?.first else {return}
+            guard let currentUser = converter.convertToStruct(user: currUser) else {return}
             
-//            let tabBarController = self?.instansiateMainViewController(currentUser: currenUser,
-//                                                                       token: token,
-//                                                                       networkMode: .offline)
-//            
-//            
-//            UIApplication.shared.windows.first?.rootViewController = tabBarController
+            let tabBarController = self?.instansiateMainViewController(currentUser: currentUser,
+                                                                       token: token,
+                                                                       networkMode: .offline)
+
+            UIApplication.shared.windows.first?.rootViewController = tabBarController
           }
         }
-        
-        
-        
-        
-        
-        
-        
-        
-        
       }
-    }
-  }
-  
-  
-  private func setupLayout() {
-    view.addSubview(loginTextField)
-    view.addSubview(passwordTextField)
-    view.addSubview(signInButton)
-    
-    loginTextField.snp.makeConstraints {
-      $0.height.equalTo(40)
-      $0.leading.trailing.equalToSuperview().inset(16)
-      $0.top.equalTo(view.safeAreaLayoutGuide.snp.top).inset(30)
-    }
-    
-    passwordTextField.snp.makeConstraints {
-      $0.leading.trailing.equalToSuperview().inset(16)
-      $0.height.equalTo(40)
-      $0.top.equalTo(loginTextField.snp.bottom).offset(8)
-    }
-    
-    signInButton.snp.makeConstraints {
-      $0.leading.trailing.equalToSuperview().inset(16)
-      $0.top.equalTo(passwordTextField.snp.bottom).offset(100)
-      $0.height.equalTo(50)
     }
   }
 }
@@ -220,8 +184,6 @@ extension AuthoriseViewController {
           print("token not saved")
         }
         
-        // TODO: handle mistake on saving
-        
         let currentUserRequest = NetworkManager.shared.currentUserRequest(token: tokenSelf.token)
         guard let session = self?.session else {return}
         
@@ -233,8 +195,6 @@ extension AuthoriseViewController {
             
           case .success(let data):
             guard let currentUser = NetworkManager.shared.parseJSON(jsonData: data, toType: UserStruct.self) else {return}
-            
-            self?.saveUser(currUser: currentUser)
             
             DispatchQueue.main.async {
               let tabBarController = self?.instansiateMainViewController(currentUser: currentUser, token: tokenSelf.token, networkMode: .online)
@@ -352,23 +312,30 @@ extension AuthoriseViewController {
     dimmedView.removeFromSuperview()
   }
 }
+// MARK: Layout
 
 extension AuthoriseViewController {
-  private func saveUser(currUser: UserStruct) {
+  private func setupLayout() {
+    view.addSubview(loginTextField)
+    view.addSubview(passwordTextField)
+    view.addSubview(signInButton)
     
-    dataManager.bgContext.performAndWait {
-      
-      let userObject = dataManager.createObject(from: User.self, context: dataManager.bgContext)
-      userObject.id = currUser.id
-      userObject.avatar = currUser.avatar
-      userObject.currentUserFollowsThisUser = currUser.currentUserFollowsThisUser
-      userObject.currentUserIsFollowedByThisUser = currUser.currentUserIsFollowedByThisUser
-      userObject.followedByCount = Int16(currUser.followedByCount)
-      userObject.followsCount = Int16(currUser.followsCount)
-      userObject.fullName = currUser.fullName
-
-      print("user saved")
-      dataManager.save(context: dataManager.bgContext)
+    loginTextField.snp.makeConstraints {
+      $0.height.equalTo(40)
+      $0.leading.trailing.equalToSuperview().inset(16)
+      $0.top.equalTo(view.safeAreaLayoutGuide.snp.top).inset(30)
+    }
+    
+    passwordTextField.snp.makeConstraints {
+      $0.leading.trailing.equalToSuperview().inset(16)
+      $0.height.equalTo(40)
+      $0.top.equalTo(loginTextField.snp.bottom).offset(8)
+    }
+    
+    signInButton.snp.makeConstraints {
+      $0.leading.trailing.equalToSuperview().inset(16)
+      $0.top.equalTo(passwordTextField.snp.bottom).offset(100)
+      $0.height.equalTo(50)
     }
   }
 }

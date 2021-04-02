@@ -176,20 +176,18 @@ extension FilterImageViewController {
   
   private func filterCollectionView() {
     let globalQueue = DispatchQueue.global(qos: .background)
-    var parameters: [String: Any] = [:]
     
     for (index, filter) in filters.filterNamesArray.enumerated() {
       guard let thumbnails = thumbnails else {continue}
       
       globalQueue.async { [weak self] in
-        guard let self = self else {return}
-        parameters = self.filters.getParameters(filter: filter, image: thumbnails[index])
+        guard let parameters = self?.filters.getParameters(filter: filter, image: thumbnails[index]),
+              let image = self?.filters.applyFilter(name: filter, parameters: parameters) else {return}
         
-        guard let image = self.filters.applyFilter(name: filter, parameters: parameters) else {return}
-        self.thumbnails?[index] = image
+        self?.thumbnails?[index] = image
         
         DispatchQueue.main.async {
-          self.filtersPreviewCollectionView.reloadData()
+          self?.filtersPreviewCollectionView.reloadData()
         }
       }
     }

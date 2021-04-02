@@ -9,7 +9,8 @@
 import Foundation
 
 final class KeychainManager {
-  func keychainQuery(service: String, account: String? = nil) -> [String: AnyObject] {
+  
+  private func keychainQuery(service: String, account: String? = nil) -> [String: AnyObject] {
     var query = [String: AnyObject]()
     query[kSecClass as String] = kSecClassGenericPassword
     query[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlocked

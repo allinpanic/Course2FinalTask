@@ -82,7 +82,6 @@ extension AddDescriptionViewController {
 
 extension AddDescriptionViewController {
   @objc private func sharePost() {
-    
     switch networkMode {
     
     case .online:
@@ -90,14 +89,14 @@ extension AddDescriptionViewController {
             let text = descriptionTextField.text else {return}
       
       guard let addPostRequest = NetworkManager.shared.newPostRequest(image: postImage,
-                                                                description: text,
-                                                                token: token) else {return}
+                                                                      description: text,
+                                                                      token: token) else {return}
       
       NetworkManager.shared.performRequest(request: addPostRequest,
                                            session: URLSession.shared)
-      { [weak self] (result) in
-        
+      { [weak self] (result) in        
         switch result {
+        
         case .success(_):
           DispatchQueue.main.async {
             self?.tabBarController?.selectedIndex = 0
@@ -111,45 +110,9 @@ extension AddDescriptionViewController {
         }
       }
       
-      
-      
-      
     case .offline:
-      
       showOfflineAlert()
-      print("show alert offline")
-      
-      
-    
-    
-    
     }
-    
-    
-//    guard let postImage = filteredImageView.image,
-//          let text = descriptionTextField.text else {return}
-//
-//    guard let addPostRequest = NetworkManager.shared.newPostRequest(image: postImage,
-//                                                              description: text,
-//                                                              token: token) else {return}
-//
-//    NetworkManager.shared.performRequest(request: addPostRequest,
-//                                         session: URLSession.shared)
-//    { [weak self] (result) in
-//
-//      switch result {
-//      case .success(_):
-//        DispatchQueue.main.async {
-//          self?.tabBarController?.selectedIndex = 0
-//          self?.navigationController?.popToRootViewController(animated: true)
-//        }
-//
-//      case .failure(let error):
-//        DispatchQueue.main.async {
-//          self?.showAlert(error: error)
-//        }
-//      }
-//    }
   }
 }
 // MARK: - Handle Keyboard
