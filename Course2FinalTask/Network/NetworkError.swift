@@ -15,4 +15,5 @@ enum NetworkError: Error {
   case notAcceptable(Int)
   case unprocessable(Int)
   case transferError(Int)
+  case error(String)
 }

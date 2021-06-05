@@ -11,6 +11,7 @@ import UIKit
 final class FilterImageViewController: UIViewController {
 // MARK: - Properties
   var token: String = ""
+  var networkMode: NetworkMode = .online
   
   private var selectedImage: UIImage
   private var index: Int
@@ -142,6 +143,7 @@ extension FilterImageViewController {
   @objc private func showAddDescriptionToPost() {
     let addDescriptionViewController = AddDescriptionViewController(filteredImage: imageViewToFilter.image)
     addDescriptionViewController.token = token
+    addDescriptionViewController.networkMode = networkMode
     self.navigationController?.pushViewController(addDescriptionViewController, animated: true)
   }
 }
@@ -174,20 +176,18 @@ extension FilterImageViewController {
   
   private func filterCollectionView() {
     let globalQueue = DispatchQueue.global(qos: .background)
-    var parameters: [String: Any] = [:]
     
     for (index, filter) in filters.filterNamesArray.enumerated() {
       guard let thumbnails = thumbnails else {continue}
       
       globalQueue.async { [weak self] in
-        guard let self = self else {return}
-        parameters = self.filters.getParameters(filter: filter, image: thumbnails[index])
+        guard let parameters = self?.filters.getParameters(filter: filter, image: thumbnails[index]),
+              let image = self?.filters.applyFilter(name: filter, parameters: parameters) else {return}
         
-        guard let image = self.filters.applyFilter(name: filter, parameters: parameters) else {return}
-        self.thumbnails?[index] = image
+        self?.thumbnails?[index] = image
         
         DispatchQueue.main.async {
-          self.filtersPreviewCollectionView.reloadData()
+          self?.filtersPreviewCollectionView.reloadData()
         }
       }
     }
@@ -201,14 +201,14 @@ extension FilterImageViewController {
     dimmedView.snp.makeConstraints{
       $0.edges.equalToSuperview()
     }
-    
+
     dimmedView.addSubview(indicator)
     indicator.startAnimating()
     indicator.snp.makeConstraints{
       $0.center.equalToSuperview()
     }
   }
-  
+
   private func hideIndicator() {
     indicator.stopAnimating()
     indicator.hidesWhenStopped = true

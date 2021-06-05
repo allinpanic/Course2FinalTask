@@ -20,9 +20,9 @@ final class UsersListViewController: UIViewController {
     return tableView
   }()
   
-  private var userList: [User]
+  private var userList: [UserStruct]
   
-  init(userList: [User], title: String, token: String) {
+  init(userList: [UserStruct], title: String, token: String) {
     self.userList = userList
     self.token = token
     super.init(nibName: nil, bundle: nil)

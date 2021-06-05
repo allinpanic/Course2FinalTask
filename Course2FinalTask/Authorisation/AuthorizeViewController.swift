@@ -6,14 +6,14 @@
 //  Copyright © 2020 e-Legion. All rights reserved.
 //
 
-import Foundation
 import UIKit
-
 
 final class AuthoriseViewController: UIViewController {
   // MARK: - Private Properties
   
   private let session = URLSession.shared
+  private var keychainManager = KeychainManager()
+  private var dataManager = CoreDataManager(modelName: "UserPost")
   
   private lazy var loginTextField: UITextField = {
     let textField = UITextField()
@@ -53,6 +53,19 @@ final class AuthoriseViewController: UIViewController {
     button.isUserInteractionEnabled = true
     return button
   }()
+  
+  private var indicator: UIActivityIndicatorView = {
+    let indicator = UIActivityIndicatorView()
+    indicator.style = .white
+    return indicator
+  }()
+
+  private var dimmedView: UIView = {
+    let view = UIView()
+    view.backgroundColor = .black
+    view.alpha = 0.7
+    return view
+  }()
   // MARK: - ViewDidLoad
   
   override func viewDidLoad() {
@@ -62,35 +75,73 @@ final class AuthoriseViewController: UIViewController {
     
     setupLayout()
     
+    if let token = keychainManager.readToken(service: "courseTask", account: nil)  {
+      showIndicator()
+      checkToken(token: token)
+    }
+    
     handleKeyboard()
     
     loginTextField.addTarget(self, action: #selector(textChanged(_:)), for: .editingChanged)
     passwordTextField.addTarget(self, action: #selector(textChanged(_:)), for: .editingChanged)
   }
 }
+// MARK: - Check Token
 
 extension AuthoriseViewController {
-  private func setupLayout() {
-    view.addSubview(loginTextField)
-    view.addSubview(passwordTextField)
-    view.addSubview(signInButton)
+  private func checkToken(token: String) {
     
-    loginTextField.snp.makeConstraints {
-      $0.height.equalTo(40)
-      $0.leading.trailing.equalToSuperview().inset(16)
-      $0.top.equalTo(view.safeAreaLayoutGuide.snp.top).inset(30)
-    }
-    
-    passwordTextField.snp.makeConstraints {
-      $0.leading.trailing.equalToSuperview().inset(16)
-      $0.height.equalTo(40)
-      $0.top.equalTo(loginTextField.snp.bottom).offset(8)
-    }
-    
-    signInButton.snp.makeConstraints {
-      $0.leading.trailing.equalToSuperview().inset(16)
-      $0.top.equalTo(passwordTextField.snp.bottom).offset(100)
-      $0.height.equalTo(50)
+    NetworkManager.shared.getCurrentUser(token: token,
+                                         session: session)
+    { [weak self] (result) in
+      switch result {
+        
+      case .success(let currentUser):
+
+        guard let dataManager = self?.dataManager else {return}
+        
+        DispatchQueue.main.async {
+          self?.hideIndicator()
+          
+          let tabBarController = MainVCBuilder.createMainViewController(currentUser: currentUser,
+                                                                        token: token,
+                                                                        networkMode: .online,
+                                                                        dataManager: dataManager)
+          
+          UIApplication.shared.windows.first?.rootViewController = tabBarController
+        }
+        
+      case .failure(let error):
+        switch error {
+        
+        case .unathorized(_):
+          _ = self?.keychainManager.deleteToken(service: "courseTask", account: nil)
+          
+          self?.dataManager.deleteAll(entity: Post.self)
+          self?.dataManager.deleteAll(entity: User.self)
+          
+          DispatchQueue.main.async {
+            self?.hideIndicator()
+          }
+          
+        default:          
+          DispatchQueue.main.async {
+            self?.hideIndicator()
+            let converter = Converter()
+            
+            guard let currUser = (self?.dataManager.fetchData(for: User.self, sortDescriptor: nil))?.first else {return}
+            guard let currentUser = converter.convertToStruct(user: currUser) else {return}
+            guard let dataManager = self?.dataManager else {return}
+
+            let tabBarController = MainVCBuilder.createMainViewController(currentUser: currentUser,
+                                                                          token: token,
+                                                                          networkMode: .offline,
+                                                                          dataManager: dataManager)
+
+            UIApplication.shared.windows.first?.rootViewController = tabBarController
+          }
+        }
+      }
     }
   }
 }
@@ -111,43 +162,29 @@ extension AuthoriseViewController {
   }
   
   @objc private func signInButtonPressed() {
-    
     guard let loginText = loginTextField.text,
       let passwordText = passwordTextField.text else {return}
     
-    guard let signInRequest = NetworkManager.shared.signinRequest(userName: loginText,
-                                                                  password: passwordText) else {return}
-    
-    NetworkManager.shared.performRequest(request: signInRequest, session: session) {
-      [weak self] (result) in
+    NetworkManager.shared.signIn(userName: loginText,
+                                 password: passwordText,
+                                 session: session) { [weak self] (result, token) in
+      guard let token = token else {return}
       
       switch result {
+      
+      case .success(let currentUser):
+        let _ = self?.keychainManager.saveToken(service: "courseTask",
+                                                           token: token,
+                                                           account: loginText)
         
-      case .success(let data):
-        guard let tokenSelf = NetworkManager.shared.parseJSON(jsonData: data, toType: Token.self) else {return}
-        
-        let currentUserRequest = NetworkManager.shared.currentUserRequest(token: tokenSelf.token)
-        guard let session = self?.session else {return}
-        
-        NetworkManager.shared.performRequest(request: currentUserRequest,
-                                             session: session)
-        { [weak self] (result) in
+        DispatchQueue.main.async {
+          guard let dataManager = self?.dataManager else {return}
           
-          switch result {
-            
-          case .success(let data):
-            guard let currenUser = NetworkManager.shared.parseJSON(jsonData: data, toType: User.self) else {return}
-            
-            DispatchQueue.main.async {
-              let tabBarController = self?.instansiateMainViewController(currentUser: currenUser, token: tokenSelf.token)
-              UIApplication.shared.windows.first?.rootViewController = tabBarController
-            }
-            
-          case .failure(let error):
-            DispatchQueue.main.async {
-              self?.showAlert(error: error)
-            }
-          }
+          let tabBarController = MainVCBuilder.createMainViewController(currentUser: currentUser,
+                                                                        token: token,
+                                                                        networkMode: .online,
+                                                                        dataManager: dataManager)
+          UIApplication.shared.windows.first?.rootViewController = tabBarController
         }
         
       case .failure(let error):
@@ -156,76 +193,6 @@ extension AuthoriseViewController {
         }
       }
     }
-  }
-}
-// MARK: - Make main view cotrollers
-
-extension AuthoriseViewController {
-  private func instansiateMainViewController(currentUser: User?, token: String) -> UIViewController {
-    let tabBarController = UITabBarController()
-    
-    let feedViewController = FeedViewController(token: token)
-    let profileViewController = ProfileViewController(user: nil, token: token)
-    let newPostViewController = NewPostViewController(token: token)
-    
-    profileViewController.user = currentUser
-    
-    let feedNavigationController = UINavigationController(rootViewController: feedViewController)
-    feedViewController.title = "Feed"
-    let profileNavigationController = UINavigationController(rootViewController: profileViewController)
-    profileNavigationController.title = "Profile"
-    let newPostNavigationController = UINavigationController(rootViewController: newPostViewController)
-    newPostNavigationController.title = "New"
-    
-    tabBarController.viewControllers = [feedNavigationController, newPostNavigationController, profileNavigationController]
-    feedNavigationController.tabBarItem.image = #imageLiteral(resourceName: "feed")
-    newPostNavigationController.tabBarItem.image = #imageLiteral(resourceName: "plus")
-    profileNavigationController.tabBarItem.image = #imageLiteral(resourceName: "profile")
-    
-    return tabBarController
-  }
-}
-// MARK: - Show Alert
-
-extension AuthoriseViewController {
-  
-  func showAlert(error: NetworkError) {
-    let title: String
-    let statusCode: Int
-    
-    switch error {
-    case .badRequest(let code):
-      title = "Bad Request"
-      statusCode = code
-      
-    case .unathorized(let code):
-      title = "Unathorized"
-      statusCode = code
-      
-    case .notFound(let code):
-      title = "Not Found"
-      statusCode = code
-      
-    case .notAcceptable(let code):
-      title = "Not acceptable"
-      statusCode = code
-      
-    case .unprocessable(let code):
-      title = "Unprocessable"
-      statusCode = code
-      
-    case .transferError(let code):
-      title = "Transfer Error"
-      statusCode = code
-    }
-    
-    let alertVC = UIAlertController(title: title, message: "\(statusCode)", preferredStyle: .alert)
-    let action = UIAlertAction(title: "OK", style: .cancel) { (action) in
-      alertVC.dismiss(animated: true, completion: nil)
-    }
-    
-    alertVC.addAction(action)
-    present(alertVC, animated: true, completion: nil)
   }
 }
 // MARK: - TextFieldDelegate
@@ -264,5 +231,55 @@ extension AuthoriseViewController {
   
   @objc private func dissmissKeyBoard() {
     view.endEditing(true)
+  }
+}
+// MARK: - Activity Indicator
+
+extension AuthoriseViewController {
+  private func showIndicator() {
+    view.addSubview(dimmedView)
+    dimmedView.snp.makeConstraints{
+      $0.edges.equalToSuperview()
+    }
+    
+    dimmedView.addSubview(indicator)
+    indicator.startAnimating()
+    indicator.snp.makeConstraints{
+      $0.center.equalToSuperview()
+    }
+  }
+  
+  private func hideIndicator() {
+    indicator.stopAnimating()
+    indicator.hidesWhenStopped = true
+    indicator.removeFromSuperview()
+    dimmedView.removeFromSuperview()
+  }
+}
+// MARK: Layout
+
+extension AuthoriseViewController {
+  private func setupLayout() {
+    view.addSubview(loginTextField)
+    view.addSubview(passwordTextField)
+    view.addSubview(signInButton)
+    
+    loginTextField.snp.makeConstraints {
+      $0.height.equalTo(40)
+      $0.leading.trailing.equalToSuperview().inset(16)
+      $0.top.equalTo(view.safeAreaLayoutGuide.snp.top).inset(30)
+    }
+    
+    passwordTextField.snp.makeConstraints {
+      $0.leading.trailing.equalToSuperview().inset(16)
+      $0.height.equalTo(40)
+      $0.top.equalTo(loginTextField.snp.bottom).offset(8)
+    }
+    
+    signInButton.snp.makeConstraints {
+      $0.leading.trailing.equalToSuperview().inset(16)
+      $0.top.equalTo(passwordTextField.snp.bottom).offset(100)
+      $0.height.equalTo(50)
+    }
   }
 }

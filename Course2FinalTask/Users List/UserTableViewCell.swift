@@ -9,7 +9,7 @@
 import UIKit
 
 final class UserTableViewCell: UITableViewCell {
-  var user: User?
+  var user: UserStruct?
   
   private var userAvatarImageView: UIImageView = {
     let imageView = UIImageView()
@@ -30,8 +30,7 @@ final class UserTableViewCell: UITableViewCell {
   
   required init?(coder: NSCoder) {
     fatalError("init(coder:) has not been implemented")
-  }
-  
+  }  
 }
 
 extension UserTableViewCell {

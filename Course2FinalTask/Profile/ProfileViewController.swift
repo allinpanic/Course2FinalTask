@@ -10,12 +10,18 @@ import UIKit
 
 final class ProfileViewController: UIViewController {
 
-  var user: User?
+  var user: UserStruct?
+  var networkMode: NetworkMode = .online
+  var dataManager: CoreDataManager!
+  
 // MARK: - Private properties
   
   private var token: String
   private let session = URLSession.shared
-  private var userPosts: [Post]?
+  private var userPosts: [PostStruct]?
+  private var userAvatar: UIImage?
+  
+  private let keychainManager = KeychainManager()
   
   private var reuseIdentifier = "imageCell"
   
@@ -41,6 +47,7 @@ final class ProfileViewController: UIViewController {
     let profileInfo = ProfileInfoView()
     profileInfo.backgroundColor = .white
     profileInfo.delegate = self
+    profileInfo.networkMode = self.networkMode
     return profileInfo
   }()
   
@@ -58,7 +65,7 @@ final class ProfileViewController: UIViewController {
   }()
 // MARK: - Inits
   
-  init (user: User?, token: String) {
+  init (user: UserStruct?, token: String) {
     self.user = user
     self.token = token
     super.init(nibName: nil, bundle: nil)
@@ -80,12 +87,17 @@ final class ProfileViewController: UIViewController {
   override func viewWillAppear(_ animated: Bool) {
     super.viewWillAppear(animated)
     
-    showIndicator()
-    getUserPosts()
+    if networkMode == .online {
+      showIndicator()
+      getUserPosts()
+    }
     
     profileInfoView.user = user
     profileInfoView.token = token
-    profileInfoView.fillProfileInfo()
+    profileInfoView.networkMode = networkMode
+    profileInfoView.fillProfileInfo(completionHandler: {[weak self] avatar in
+      self?.userAvatar = avatar
+    })
   }
 }
 //MARK: - Layout
@@ -97,14 +109,15 @@ extension ProfileViewController {
     profileScrollView.addSubview(userImagesCollectionView)
     
     self.navigationItem.title = user?.username
-    configureLogOutButton()
     
     showIndicator()
     getUserPosts()
     
     profileInfoView.user = user
     profileInfoView.token = token
-    profileInfoView.fillProfileInfo()
+    profileInfoView.fillProfileInfo{ _ in}
+    
+    configureLogOutButton()
     
     profileScrollView.snp.makeConstraints{
       $0.edges.equalToSuperview()
@@ -135,11 +148,24 @@ extension ProfileViewController: UICollectionViewDataSource, UICollectionViewDel
   
   func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
     guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: reuseIdentifier, for: indexPath) as? ImageCollectionViewCell
-      else { return UICollectionViewCell()}
+    else { return UICollectionViewCell()}
     
-    if let imageString = userPosts?[indexPath.item].image {
-      if let imageURL = URL(string: (imageString)) {
-        cell.imageView.kf.setImage(with: imageURL)
+    switch networkMode {
+    
+    case .online:
+      if let imageString = userPosts?[indexPath.item].image {
+        if let imageURL = URL(string: (imageString)) {
+          cell.imageView.kf.setImage(with: imageURL)
+        }
+      }
+      
+    case .offline:
+      if let imageString = userPosts?[indexPath.item].image {
+        if let imageData = Data(base64Encoded: imageString) {
+          if let image = UIImage(data: imageData) {
+            cell.imageView.image = image
+          }
+        }
       }
     }
     return cell
@@ -153,61 +179,12 @@ extension ProfileViewController: UICollectionViewDataSource, UICollectionViewDel
 
 extension ProfileViewController: ProfileInfoViewDelegate {
   
-  func followersTapped(userList: [User], title: String) {
+  func followersTapped(userList: [UserStruct], title: String) {
     self.navigationController?.pushViewController(UsersListViewController(userList: userList, title: title, token: token), animated: true)
   }
   
-  func followingTapped(userList: [User], title: String) {
+  func followingTapped(userList: [UserStruct], title: String) {
     self.navigationController?.pushViewController(UsersListViewController(userList: userList, title: title, token: token), animated: true)
-  }
-  
-  func showAlert() {
-    let alert = UIAlertController(title: "Unknown Error", message: "Please, try again later", preferredStyle: .alert)
-    alert.addAction(UIAlertAction(title: "OK", style: .default, handler: {
-      [weak self] action in
-      alert.dismiss(animated: true, completion: nil)
-      self?.navigationController?.popViewController(animated: true)
-    }))
-    self.present(alert, animated: true, completion: nil)
-  }
-  
-  func showAlert(error: NetworkError) {
-    let title: String
-    let statusCode: Int
-    
-    switch error {
-    case .badRequest(let code):
-      title = "Bad Request"
-      statusCode = code
-      
-    case .unathorized(let code):
-      title = "Unathorized"
-      statusCode = code
-      
-    case .notFound(let code):
-      title = "Not Found"
-      statusCode = code
-      
-    case .notAcceptable(let code):
-      title = "Not acceptable"
-      statusCode = code
-      
-    case .unprocessable(let code):
-      title = "Unprocessable"
-      statusCode = code
-      
-    case .transferError(let code):
-      title = "Transfer Error"
-      statusCode = code
-    }
-    
-    let alertVC = UIAlertController(title: title, message: "\(statusCode)", preferredStyle: .alert)
-    let action = UIAlertAction(title: "OK", style: .cancel) { (action) in
-      alertVC.dismiss(animated: true, completion: nil)
-    }
-    
-    alertVC.addAction(action)
-    present(alertVC, animated: true, completion: nil)
   }
 }
 //MARK: - Activity indicator methods
@@ -238,11 +215,29 @@ extension ProfileViewController {
 extension ProfileViewController {
   @objc private func logOutButtonTapped() {
     
-    let signOutRequest = NetworkManager.shared.signOutRequest(token: token)
+    let _ = keychainManager.deleteToken(service: "courseTask", account: nil)
     
-    NetworkManager.shared.performRequest(request: signOutRequest,
-                                         session: session)
-    { (data) in
+    switch networkMode {
+    
+    case .online:
+      let signOutRequest = NetworkManager.shared.signOutRequest(token: token)
+      
+      NetworkManager.shared.performRequest(request: signOutRequest,
+                                           session: session)
+      { [weak self] (data) in
+        self?.dataManager.deleteAll(entity: Post.self)
+        self?.dataManager.deleteAll(entity: User.self)
+        
+        DispatchQueue.main.async {
+          let authenticationController = AuthoriseViewController()
+          UIApplication.shared.windows.first?.rootViewController = authenticationController
+        }
+      }
+      
+    case .offline:
+      dataManager.deleteAll(entity: Post.self)
+      dataManager.deleteAll(entity: User.self)
+      
       DispatchQueue.main.async {
         let authenticationController = AuthoriseViewController()
         UIApplication.shared.windows.first?.rootViewController = authenticationController
@@ -251,25 +246,47 @@ extension ProfileViewController {
   }
   
   private func configureLogOutButton() {
-    let currentUserRequest = NetworkManager.shared.currentUserRequest(token: token)
+    switch networkMode {
     
-    NetworkManager.shared.performRequest(request: currentUserRequest,
-                                         session: session)
-    { [weak self] (result) in
+    case .online:
+      guard let user = user else {return}
       
-      switch result {
-      case .success(let data):
-        guard let currenUser = NetworkManager.shared.parseJSON(jsonData: data, toType: User.self) else {return}
-        
-        if self?.user?.id == currenUser.id  {
+      checkIsCurrentUser(user: user) { [weak self] isCurrentUser in
+        if isCurrentUser {
+          
           DispatchQueue.main.async {
             let logOutButton = UIBarButtonItem(title: "Log Out",
                                                style: .plain,
                                                target: self,
                                                action: #selector(self?.logOutButtonTapped))
-            
             self?.navigationItem.rightBarButtonItem = logOutButton
           }
+        }
+      }
+
+    case .offline:
+      let logOutButton = UIBarButtonItem(title: "Log Out",
+                                         style: .plain,
+                                         target: self,
+                                         action: #selector(logOutButtonTapped))
+      
+      navigationItem.rightBarButtonItem = logOutButton
+    }
+  }
+  
+  private func checkIsCurrentUser(user: UserStruct, handler: @escaping (Bool) -> Void) {
+    let currentUserRequest = NetworkManager.shared.currentUserRequest(token: token)
+    
+    NetworkManager.shared.performRequest(request: currentUserRequest,
+                                         session: session)
+    { [weak self] (result) in
+      switch result {
+      
+      case .success(let data):
+        guard let currenUser = NetworkManager.shared.parseJSON(jsonData: data,
+                                                               toType: UserStruct.self) else {return}
+        if self?.user?.id == currenUser.id  {
+          handler(true)
         }
         
       case .failure(let error):
@@ -284,30 +301,63 @@ extension ProfileViewController {
 
 extension ProfileViewController {
   private func getUserPosts() {
+    switch networkMode {
     
-    guard let user = user else {return}
-    
-   let userPostsRequest = NetworkManager.shared.getPostsByUserRequest(withUserID: user.id, token: token)
-    
-    NetworkManager.shared.performRequest(request: userPostsRequest, session: session) {
-      [weak self] (result) in
+    case .online:
+      guard let user = user else {return}
       
-      switch result {
+      let userPostsRequest = NetworkManager.shared.getPostsByUserRequest(withUserID: user.id,
+                                                                         token: token)
+      NetworkManager.shared.performRequest(request: userPostsRequest,
+                                           session: session) {
+        [weak self] (result) in
+        switch result {
         
-      case .success(let data):
-        guard let posts = NetworkManager.shared.parseJSON(jsonData: data, toType: [Post].self) else {return}
-        
-        self?.userPosts = posts.reversed()
-        DispatchQueue.main.async {
-          self?.userImagesCollectionView.reloadData()
-          self?.hideIndicator()
-        }
-        
-      case .failure(let error):
-        DispatchQueue.main.async {
-          self?.showAlert(error: error)
+        case .success(let data):
+          guard let posts = NetworkManager.shared.parseJSON(jsonData: data,
+                                                            toType: [PostStruct].self) else {return}
+          self?.userPosts = posts.reversed()
+          
+          DispatchQueue.main.async {
+            self?.userImagesCollectionView.reloadData()
+            self?.hideIndicator()
+          }
+          
+          self?.checkIsCurrentUser(user: user, handler: { [weak self] (isCurrentUser) in
+            if isCurrentUser {
+              self?.dataManager.saveCurrentUser(currUser: user)
+              for post in posts {
+                self?.dataManager.savePost(post: post)
+              }
+            }
+          })
+          
+        case .failure(let error):
+          DispatchQueue.main.async {
+            self?.showAlert(error: error)
+          }
         }
       }
+      
+    case .offline:
+      guard let user = user else {return}
+      userPosts = []
+      
+      let predicate = NSPredicate(format: "author == %@", user.id)
+      let sortDescriptor = NSSortDescriptor(key: #keyPath(Post.createdTime), ascending: false)
+      
+      let fetchedPosts = dataManager.fetchData(for: Post.self,
+                                               predicate: predicate,
+                                               sortDescriptor: sortDescriptor)
+      let converter = Converter()
+      
+      for post in fetchedPosts {
+        guard let postStruct = converter.convertToStruct(post: post) else {return}
+        userPosts?.append(postStruct)
+      }
+      
+      userImagesCollectionView.reloadData()
+      hideIndicator()
     }
   }
 }

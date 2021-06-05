@@ -150,16 +150,16 @@ final class NetworkManager {
   
   func performRequest(request: URLRequest,
                       session: URLSession,
-                      completionHandler: @escaping (Result<Data ,NetworkError>) -> Void) {
+                      completionHandler: @escaping (Result<Data, NetworkError>) -> Void) {
     
     let dataTask = session.dataTask(with: request) { data, response, error in
       if let error = error {
-        print(error.localizedDescription)
+        completionHandler(.failure(.error(error.localizedDescription)))
         return
       }
       
       if let httpResponse = response as? HTTPURLResponse {
-
+        
         switch httpResponse.statusCode {
         case 200 :
           guard let data = data else {return}
@@ -185,11 +185,56 @@ final class NetworkManager {
   func parseJSON<T: Codable>(jsonData: Data, toType: T.Type) -> T? {
     let decoder = JSONDecoder()
     
-    guard let result = try? decoder.decode(T.self, from: jsonData) else {
-      print("data decoding failed")
-      return nil
-    }
+    guard let result = try? decoder.decode(T.self, from: jsonData) else {return nil}
+    
     return result
+  }
+  // MARK: - NEW FUNCTIONS
+  
+  func getCurrentUser(token: String, session: URLSession, completionHandler: @escaping (Result<UserStruct, NetworkError>) -> Void) {
+    
+    let currentUserRequest = NetworkManager.shared.currentUserRequest(token: token)
+    performRequest(request: currentUserRequest,
+                   session: session)
+    { (result) in
+      
+      switch result {
+        
+      case .success(let data):
+        guard let currentUser = NetworkManager.shared.parseJSON(jsonData: data, toType: UserStruct.self) else {return}
+        completionHandler(.success(currentUser))
+        
+      case .failure(let error):
+        completionHandler(.failure(error))
+      }
+    }
+  }
+  
+  func signIn(userName: String, password: String, session: URLSession, completionHandler: @escaping (Result<UserStruct, NetworkError>, String?) -> Void) {
+    
+    guard let signInRequest = NetworkManager.shared.signinRequest(userName: userName,
+                                                                  password: password) else {return}
+    performRequest(request: signInRequest,
+                   session: session) { [weak self] (result) in
+      switch result {
+      
+      case .success(let data):
+        guard let token = self?.parseJSON(jsonData: data, toType: Token.self) else {return}
+        
+        NetworkManager.shared.getCurrentUser(token: token.token, session: session) { (result) in
+          switch result {
+          
+          case .success(let currentUser):
+            completionHandler(.success(currentUser), token.token)
+            
+          case .failure(let error):
+            completionHandler(.failure(error), token.token)
+          }
+        }
+      case .failure(let error):
+        completionHandler(.failure(error), nil)
+      }
+    }
   }
 }
 // MARK: - Private function
