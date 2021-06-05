@@ -36,6 +36,7 @@
 		E97D7BFD241C0EB5007509DC /* UserTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = E97D7BFC241C0EB5007509DC /* UserTableViewCell.swift */; };
 		E9A8772924124B9C0004F142 /* FeedViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9A8772824124B9C0004F142 /* FeedViewController.swift */; };
 		E9A8772B24124D200004F142 /* FeedPostCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9A8772A24124D200004F142 /* FeedPostCell.swift */; };
+		E9AD5D77266BBDD600D170D8 /* MainVCBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9AD5D76266BBDD600D170D8 /* MainVCBuilder.swift */; };
 		E9D78A602487DBC500FCA5D1 /* FollowButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9D78A5F2487DBC500FCA5D1 /* FollowButton.swift */; };
 		E9DEF4C0241BD5C200D8E9B3 /* UsersListViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9DEF4BF241BD5C200D8E9B3 /* UsersListViewController.swift */; };
 /* End PBXBuildFile section */
@@ -87,6 +88,7 @@
 		E97D7BFC241C0EB5007509DC /* UserTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserTableViewCell.swift; sourceTree = "<group>"; };
 		E9A8772824124B9C0004F142 /* FeedViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedViewController.swift; sourceTree = "<group>"; };
 		E9A8772A24124D200004F142 /* FeedPostCell.swift */ = {isa = PBXFileReference; indentWidth = 2; lastKnownFileType = sourcecode.swift; path = FeedPostCell.swift; sourceTree = "<group>"; };
+		E9AD5D76266BBDD600D170D8 /* MainVCBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainVCBuilder.swift; sourceTree = "<group>"; };
 		E9D78A5F2487DBC500FCA5D1 /* FollowButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FollowButton.swift; sourceTree = "<group>"; };
 		E9DEF4BF241BD5C200D8E9B3 /* UsersListViewController.swift */ = {isa = PBXFileReference; indentWidth = 2; lastKnownFileType = sourcecode.swift; path = UsersListViewController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -186,6 +188,7 @@
 			children = (
 				E914B534252B122A0035AB88 /* AuthorizeViewController.swift */,
 				E9270999260F1DD700773803 /* KeychainManager.swift */,
+				E9AD5D76266BBDD600D170D8 /* MainVCBuilder.swift */,
 			);
 			path = Authorisation;
 			sourceTree = "<group>";
@@ -425,6 +428,7 @@
 				E92B36942413EA79003633DD /* ProfileInfoView.swift in Sources */,
 				E927099F260F480000773803 /* UserPost.xcdatamodeld in Sources */,
 				E97D7BFD241C0EB5007509DC /* UserTableViewCell.swift in Sources */,
+				E9AD5D77266BBDD600D170D8 /* MainVCBuilder.swift in Sources */,
 				74B79258202B3254006BCB41 /* AppDelegate.swift in Sources */,
 				E968D8E425C044F00034CDF3 /* User.swift in Sources */,
 				E94209BB25C2F4C90002E2C3 /* Post.swift in Sources */,

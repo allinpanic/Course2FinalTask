@@ -90,23 +90,24 @@ final class AuthoriseViewController: UIViewController {
 
 extension AuthoriseViewController {
   private func checkToken(token: String) {
-    let currentUserRequest = NetworkManager.shared.currentUserRequest(token: token)
     
-    NetworkManager.shared.performRequest(request: currentUserRequest,
+    NetworkManager.shared.getCurrentUser(token: token,
                                          session: session)
     { [weak self] (result) in
       switch result {
         
-      case .success(let data):
-        guard let currentUser = NetworkManager.shared.parseJSON(jsonData: data,
-                                                                toType: UserStruct.self) else {return}
+      case .success(let currentUser):
+
+        guard let dataManager = self?.dataManager else {return}
         
         DispatchQueue.main.async {
           self?.hideIndicator()
           
-          let tabBarController = self?.instansiateMainViewController(currentUser: currentUser,
-                                                                     token: token,
-                                                                     networkMode: .online)
+          let tabBarController = MainVCBuilder.createMainViewController(currentUser: currentUser,
+                                                                        token: token,
+                                                                        networkMode: .online,
+                                                                        dataManager: dataManager)
+          
           UIApplication.shared.windows.first?.rootViewController = tabBarController
         }
         
@@ -114,10 +115,7 @@ extension AuthoriseViewController {
         switch error {
         
         case .unathorized(_):
-          let deletingResult = self?.keychainManager.deleteToken(service: "courseTask", account: nil)
-          if deletingResult! {
-            print("token deleted")
-          }
+          _ = self?.keychainManager.deleteToken(service: "courseTask", account: nil)
           
           self?.dataManager.deleteAll(entity: Post.self)
           self?.dataManager.deleteAll(entity: User.self)
@@ -133,10 +131,12 @@ extension AuthoriseViewController {
             
             guard let currUser = (self?.dataManager.fetchData(for: User.self, sortDescriptor: nil))?.first else {return}
             guard let currentUser = converter.convertToStruct(user: currUser) else {return}
-            
-            let tabBarController = self?.instansiateMainViewController(currentUser: currentUser,
-                                                                       token: token,
-                                                                       networkMode: .offline)
+            guard let dataManager = self?.dataManager else {return}
+
+            let tabBarController = MainVCBuilder.createMainViewController(currentUser: currentUser,
+                                                                          token: token,
+                                                                          networkMode: .offline,
+                                                                          dataManager: dataManager)
 
             UIApplication.shared.windows.first?.rootViewController = tabBarController
           }
@@ -165,47 +165,26 @@ extension AuthoriseViewController {
     guard let loginText = loginTextField.text,
       let passwordText = passwordTextField.text else {return}
     
-    guard let signInRequest = NetworkManager.shared.signinRequest(userName: loginText,
-                                                                  password: passwordText) else {return}
-    
-    NetworkManager.shared.performRequest(request: signInRequest, session: session) {
-      [weak self] (result) in
+    NetworkManager.shared.signIn(userName: loginText,
+                                 password: passwordText,
+                                 session: session) { [weak self] (result, token) in
+      guard let token = token else {return}
       
       switch result {
+      
+      case .success(let currentUser):
+        let _ = self?.keychainManager.saveToken(service: "courseTask",
+                                                           token: token,
+                                                           account: loginText)
         
-      case .success(let data):
-        guard let tokenSelf = NetworkManager.shared.parseJSON(jsonData: data, toType: Token.self) else {return}
-        
-        let savingResult = self?.keychainManager.saveToken(service: "courseTask", token: tokenSelf.token, account: loginText)
-        
-        if savingResult! {
-          print("token saved")
-        } else {
-          print("token not saved")
-        }
-        
-        let currentUserRequest = NetworkManager.shared.currentUserRequest(token: tokenSelf.token)
-        guard let session = self?.session else {return}
-        
-        NetworkManager.shared.performRequest(request: currentUserRequest,
-                                             session: session)
-        { [weak self] (result) in
+        DispatchQueue.main.async {
+          guard let dataManager = self?.dataManager else {return}
           
-          switch result {
-            
-          case .success(let data):
-            guard let currentUser = NetworkManager.shared.parseJSON(jsonData: data, toType: UserStruct.self) else {return}
-            
-            DispatchQueue.main.async {
-              let tabBarController = self?.instansiateMainViewController(currentUser: currentUser, token: tokenSelf.token, networkMode: .online)
-              UIApplication.shared.windows.first?.rootViewController = tabBarController
-            }
-            
-          case .failure(let error):
-            DispatchQueue.main.async {
-              self?.showAlert(error: error)
-            }
-          }
+          let tabBarController = MainVCBuilder.createMainViewController(currentUser: currentUser,
+                                                                        token: token,
+                                                                        networkMode: .online,
+                                                                        dataManager: dataManager)
+          UIApplication.shared.windows.first?.rootViewController = tabBarController
         }
         
       case .failure(let error):
@@ -214,41 +193,6 @@ extension AuthoriseViewController {
         }
       }
     }
-  }
-}
-// MARK: - Make main view cotrollers
-
-extension AuthoriseViewController {
-  private func instansiateMainViewController(currentUser: UserStruct?, token: String, networkMode: NetworkMode) -> UIViewController {
-    
-    let tabBarController = UITabBarController()
-    
-    let feedViewController = FeedViewController(token: token)
-    let profileViewController = ProfileViewController(user: nil, token: token)
-    let newPostViewController = NewPostViewController(token: token)
-    
-    profileViewController.user = currentUser
-    profileViewController.networkMode = networkMode
-    profileViewController.dataManager = dataManager
-    
-    feedViewController.networkMode = networkMode
-    feedViewController.dataManager = dataManager
-    
-    newPostViewController.networkMode = networkMode
-    
-    let feedNavigationController = UINavigationController(rootViewController: feedViewController)
-    feedViewController.title = "Feed"
-    let profileNavigationController = UINavigationController(rootViewController: profileViewController)
-    profileNavigationController.title = "Profile"
-    let newPostNavigationController = UINavigationController(rootViewController: newPostViewController)
-    newPostNavigationController.title = "New"
-    
-    tabBarController.viewControllers = [feedNavigationController, newPostNavigationController, profileNavigationController]
-    feedNavigationController.tabBarItem.image = #imageLiteral(resourceName: "feed")
-    newPostNavigationController.tabBarItem.image = #imageLiteral(resourceName: "plus")
-    profileNavigationController.tabBarItem.image = #imageLiteral(resourceName: "profile")
-    
-    return tabBarController
   }
 }
 // MARK: - TextFieldDelegate

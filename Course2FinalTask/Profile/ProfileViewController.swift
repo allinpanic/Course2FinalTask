@@ -215,8 +215,7 @@ extension ProfileViewController {
 extension ProfileViewController {
   @objc private func logOutButtonTapped() {
     
-    let deletingresult = keychainManager.deleteToken(service: "courseTask", account: nil)
-    print(deletingresult)
+    let _ = keychainManager.deleteToken(service: "courseTask", account: nil)
     
     switch networkMode {
     
