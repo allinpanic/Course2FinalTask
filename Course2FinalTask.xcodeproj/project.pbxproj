@@ -37,6 +37,8 @@
 		E9A8772924124B9C0004F142 /* FeedViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9A8772824124B9C0004F142 /* FeedViewController.swift */; };
 		E9A8772B24124D200004F142 /* FeedPostCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9A8772A24124D200004F142 /* FeedPostCell.swift */; };
 		E9AD5D77266BBDD600D170D8 /* MainVCBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9AD5D76266BBDD600D170D8 /* MainVCBuilder.swift */; };
+		E9AD5D79266CC40000D170D8 /* AuthoriseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9AD5D78266CC40000D170D8 /* AuthoriseView.swift */; };
+		E9AD5D7B266D241C00D170D8 /* AuthoriseModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9AD5D7A266D241C00D170D8 /* AuthoriseModel.swift */; };
 		E9D78A602487DBC500FCA5D1 /* FollowButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9D78A5F2487DBC500FCA5D1 /* FollowButton.swift */; };
 		E9DEF4C0241BD5C200D8E9B3 /* UsersListViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9DEF4BF241BD5C200D8E9B3 /* UsersListViewController.swift */; };
 /* End PBXBuildFile section */
@@ -89,6 +91,8 @@
 		E9A8772824124B9C0004F142 /* FeedViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedViewController.swift; sourceTree = "<group>"; };
 		E9A8772A24124D200004F142 /* FeedPostCell.swift */ = {isa = PBXFileReference; indentWidth = 2; lastKnownFileType = sourcecode.swift; path = FeedPostCell.swift; sourceTree = "<group>"; };
 		E9AD5D76266BBDD600D170D8 /* MainVCBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainVCBuilder.swift; sourceTree = "<group>"; };
+		E9AD5D78266CC40000D170D8 /* AuthoriseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthoriseView.swift; sourceTree = "<group>"; };
+		E9AD5D7A266D241C00D170D8 /* AuthoriseModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthoriseModel.swift; sourceTree = "<group>"; };
 		E9D78A5F2487DBC500FCA5D1 /* FollowButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FollowButton.swift; sourceTree = "<group>"; };
 		E9DEF4BF241BD5C200D8E9B3 /* UsersListViewController.swift */ = {isa = PBXFileReference; indentWidth = 2; lastKnownFileType = sourcecode.swift; path = UsersListViewController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -144,8 +148,10 @@
 		74B79256202B3254006BCB41 /* Course2FinalTask */ = {
 			isa = PBXGroup;
 			children = (
-				E914B533252B12060035AB88 /* Authorisation */,
+				E9AD5D76266BBDD600D170D8 /* MainVCBuilder.swift */,
+				E9270999260F1DD700773803 /* KeychainManager.swift */,
 				E92709A0260F5F8100773803 /* extension UIViewController.swift */,
+				E914B533252B12060035AB88 /* Authorisation */,
 				E92B36952413F00A003633DD /* Feed */,
 				E92B36962413F020003633DD /* Profile */,
 				E94C0B1F246B1A4000AB7116 /* NewPost */,
@@ -187,8 +193,8 @@
 			isa = PBXGroup;
 			children = (
 				E914B534252B122A0035AB88 /* AuthorizeViewController.swift */,
-				E9270999260F1DD700773803 /* KeychainManager.swift */,
-				E9AD5D76266BBDD600D170D8 /* MainVCBuilder.swift */,
+				E9AD5D78266CC40000D170D8 /* AuthoriseView.swift */,
+				E9AD5D7A266D241C00D170D8 /* AuthoriseModel.swift */,
 			);
 			path = Authorisation;
 			sourceTree = "<group>";
@@ -423,6 +429,7 @@
 				E92B368A2412879C003633DD /* PostHeader.swift in Sources */,
 				E94C0B27246C68EA00AB7116 /* AddDescriptionViewController.swift in Sources */,
 				E94C0B23246C2BF300AB7116 /* FilterImageViewController.swift in Sources */,
+				E9AD5D7B266D241C00D170D8 /* AuthoriseModel.swift in Sources */,
 				E9DEF4C0241BD5C200D8E9B3 /* UsersListViewController.swift in Sources */,
 				E92B368C24128ABB003633DD /* PostFooterView.swift in Sources */,
 				E92B36942413EA79003633DD /* ProfileInfoView.swift in Sources */,
@@ -432,6 +439,7 @@
 				74B79258202B3254006BCB41 /* AppDelegate.swift in Sources */,
 				E968D8E425C044F00034CDF3 /* User.swift in Sources */,
 				E94209BB25C2F4C90002E2C3 /* Post.swift in Sources */,
+				E9AD5D79266CC40000D170D8 /* AuthoriseView.swift in Sources */,
 				E97AFC652613900900558280 /* Converter.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

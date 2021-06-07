@@ -12,7 +12,7 @@ protocol Builder {
   static func createMainViewController(currentUser: UserStruct?, token: String, networkMode: NetworkMode, dataManager: CoreDataManager)-> UIViewController
 }
 
-final class MainVCBuilder: Builder {
+public final class MainVCBuilder: Builder {
   static func createMainViewController(currentUser: UserStruct?, token: String, networkMode: NetworkMode, dataManager: CoreDataManager) -> UIViewController {
     let tabBarController = UITabBarController()
     
