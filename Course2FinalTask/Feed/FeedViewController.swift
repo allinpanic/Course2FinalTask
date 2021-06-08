@@ -9,35 +9,13 @@
 import UIKit
 
 final class FeedViewController: UIViewController {
+  //MARK: - Properties
   var networkMode: NetworkMode = .online
   var dataManager: CoreDataManager!
+  var feedModel: FeedModel!
   
-//MARK: - Properties
-  private let session = URLSession.shared
   private let token: String
-  
-  private lazy var feedTableView: UITableView = {
-    let tableView = UITableView()
-    tableView.backgroundColor = .white
-    tableView.separatorStyle = .none
-    tableView.allowsSelection = false
-    tableView.register(FeedPostCell.self, forCellReuseIdentifier: reuseIdentifier)
-    return tableView
-  }()
-  
-  private var indicator: UIActivityIndicatorView = {
-    let indicator = UIActivityIndicatorView()
-    indicator.style = .white
-    return indicator
-  }()
-  
-  private var dimmedView: UIView = {
-    let view = UIView()
-    view.backgroundColor = .black
-    view.alpha = 0.7
-    return view
-  }()
-  
+  private var feedView: FeedViewProtocol = FeedView()
   private let reuseIdentifier = "postCell"
   private var posts: [PostStruct] = []
   
@@ -51,11 +29,17 @@ final class FeedViewController: UIViewController {
   }
   //MARK: - ViewDidLoad
   
+  override func loadView() {
+    super.loadView()
+    
+    view = feedView
+  }
+  
   override func viewDidLoad() {
     super.viewDidLoad()
     
-    feedTableView.dataSource = self
-    setupLayout()
+    feedView.feedTableView.dataSource = self
+    feedModel.delegate = self
     
     showIndicator()
     getPosts()
@@ -71,16 +55,6 @@ final class FeedViewController: UIViewController {
     }
   }
 }
-
-extension FeedViewController {
-  func setupLayout() {
-    view.addSubview(feedTableView)
-    
-    feedTableView.snp.makeConstraints{
-      $0.edges.equalToSuperview()
-    }
-  }
-}
 //MARK: - TableView DataSource
 
 extension FeedViewController: UITableViewDataSource {
@@ -89,10 +63,9 @@ extension FeedViewController: UITableViewDataSource {
   }
   
   func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-    guard let cell = feedTableView.dequeueReusableCell(withIdentifier: reuseIdentifier, for: indexPath) as? FeedPostCell
+    guard let cell = feedView.feedTableView.dequeueReusableCell(withIdentifier: reuseIdentifier, for: indexPath) as? FeedPostCell
       else { return UITableViewCell() }
     
-    cell.token = token
     cell.networkMode = networkMode
     cell.post = posts[indexPath.row]
     cell.index = indexPath.row
@@ -104,24 +77,54 @@ extension FeedViewController: UITableViewDataSource {
 //MARK: - PostCell Delegate methods
 
 extension FeedViewController: FeedPostCellDelegate {
-  func likeButtonPressed(post: PostStruct, index: Int) {
-    posts[index] = post
+  func like(postID: String, index: Int) {
+    feedModel.likePost(withPostID: postID) { [weak self] (post) in
+      self?.posts[index] = post
+    }
   }
   
-  func postHeaderViewTapped(user: UserStruct) {
-    let profileViewController = ProfileViewController(user: user, token: token)
-    profileViewController.dataManager = dataManager
-    profileViewController.networkMode = networkMode
-    self.navigationController?.pushViewController(profileViewController, animated: true)
+  func dislike(postId: String, index: Int) {
+    feedModel.unlikePost(withPostID: postId) { [weak self] (post) in
+      self?.posts[index] = post
+    }
+  }
+  
+  func postHeaderViewTapped(userID: String) {
+    feedModel.getUser(withUserID: userID) { [weak self] (user) in
+      self?.navigateToProfileVC(user: user)
+    }
+  }
+  
+  func getLikesCount(postID: String, index: Int) {
+    feedModel.getLikes(withPostID: postID) { [weak self] (users) in
+      let likesCount = users.count
+      
+      DispatchQueue.main.async {
+        self?.feedView.updateLikesCount(likesCount: likesCount, index: index) //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      }
+    }
+  }
+  
+  func likesLabelTapped(postID: String, title: String) {
+    feedModel.getLikes(withPostID: postID) { [weak self] (users) in
+      guard let token = self?.token else {return}
+      
+      DispatchQueue.main.async {
+        self?.navigationController?.pushViewController(UsersListViewController(userList: users,
+                                                                               title: title,
+                                                                               token: token),
+                                                       animated: true)
+      }
+    }
+  }
+  
+  func likeButtonPressed(post: PostStruct, index: Int) {
+    posts[index] = post
   }
   
   func postImageDoubleTapped(imageView: UIImageView) {
     imageView.isHidden = false
     animateImage(imageView: imageView)
-  }
-  
-  func likesLabelTapped(users: [UserStruct], title: String) {
-    self.navigationController?.pushViewController(UsersListViewController(userList: users, title: title, token: token), animated: true)
   }
 }
 //MARK: - Animation
@@ -143,23 +146,23 @@ extension FeedViewController {
 
 extension FeedViewController {
   func showIndicator() {
-    view.addSubview(dimmedView)
-    dimmedView.snp.makeConstraints{
+    view.addSubview(feedView.dimmedView)
+    feedView.dimmedView.snp.makeConstraints{
       $0.edges.equalToSuperview()
     }
     
-    dimmedView.addSubview(indicator)
-    indicator.startAnimating()
-    indicator.snp.makeConstraints{
+    feedView.dimmedView.addSubview(feedView.indicator)
+    feedView.indicator.startAnimating()
+    feedView.indicator.snp.makeConstraints{
       $0.center.equalToSuperview()
     }
   }
   
   func hideIndicator() {
-    indicator.stopAnimating()
-    indicator.hidesWhenStopped = true
-    indicator.removeFromSuperview()
-    dimmedView.removeFromSuperview()
+    feedView.indicator.stopAnimating()
+    feedView.indicator.hidesWhenStopped = true
+    feedView.indicator.removeFromSuperview()
+    feedView.dimmedView.removeFromSuperview()
   }
 }
 // MARK: - Get Posts
@@ -167,76 +170,46 @@ extension FeedViewController {
 extension FeedViewController {
   private func getPosts() {
     
-    switch networkMode {
-    
-    case .online:
-      let postsRequest = NetworkManager.shared.getFeedRequest(token: token)
-      
-      NetworkManager.shared.performRequest(request: postsRequest, session: session) {
-        [weak self] (result) in
-        
-        switch result {
-        
-        case .success(let data):
-          guard let posts = NetworkManager.shared.parseJSON(jsonData: data, toType: [PostStruct].self) else {return}
-          
-          self?.posts = posts
-          
-          DispatchQueue.main.async {
-            self?.feedTableView.reloadData()
-            self?.hideIndicator()
-          }
-          
-          for  post in posts {            
-            self?.getLikesCount(post: post) { (likes) in
-              self?.dataManager.savePost(post: post, likesCount: likes)
-            }
-          }
-          
-        case .failure(let error):
-          DispatchQueue.main.async {
-            self?.showAlert(error: error)
-          }
-        }
-      }
-      
-    case .offline:
-      let sortDescriptor = NSSortDescriptor(key: #keyPath(Post.createdTime), ascending: false)
-      let converter = Converter()
-      
-      let fetchedPosts = dataManager.fetchData(for: Post.self, sortDescriptor: sortDescriptor)
-      
-      for post in fetchedPosts {
-        guard let postStruct = converter.convertToStruct(post: post) else {return}
-        
-        posts.append(postStruct)
-      }
-      
-      feedTableView.reloadData()
-      hideIndicator()
+    feedModel.getFeed(token: token) { [weak self] (posts) in
+      self?.posts = posts
+      self?.feedView.feedTableView.reloadData()
+      self?.hideIndicator()
     }
   }
   
-  private func getLikesCount(post: PostStruct, handler: @escaping (Int) -> Void) {
-    let usersLikedRequest = NetworkManager.shared.getUsersLikedPostRequest(withPostID: post.id,
-                                                                           token: token)
-    
-    NetworkManager.shared.performRequest(request: usersLikedRequest,
-                                         session: URLSession.shared)
-    { [weak self] (result) in
-      switch result {
-      
-      case .success(let data):
-        guard let users = NetworkManager.shared.parseJSON(jsonData: data,
-                                                          toType: [UserStruct].self) else {return}
-        
-        handler(users.count)
-        
-      case .failure(let error):
-        DispatchQueue.main.async {
-          self?.showAlert(error: error)
-        }
-      }
-    }
+//  private func getLikesCount(post: PostStruct, handler: @escaping (Int) -> Void) {
+//    let usersLikedRequest = NetworkManager.shared.getUsersLikedPostRequest(withPostID: post.id,
+//                                                                           token: token)
+//
+//    NetworkManager.shared.performRequest(request: usersLikedRequest,
+//                                         session: URLSession.shared)
+//    { [weak self] (result) in
+//      switch result {
+//
+//      case .success(let data):
+//        guard let users = NetworkManager.shared.parseJSON(jsonData: data,
+//                                                          toType: [UserStruct].self) else {return}
+//
+//        handler(users.count)
+//
+//      case .failure(let error):
+//        DispatchQueue.main.async {
+//          self?.showAlert(error: error)
+//        }
+//      }
+//    }
+//  }
+}
+
+extension FeedViewController: FeedModelDelegate {
+  func getError(error: NetworkError) {
+    showAlert(error: error)
+  }
+
+  func navigateToProfileVC(user: UserStruct) {
+    let profileViewController = ProfileViewController(user: user, token: token)
+    profileViewController.dataManager = dataManager
+    profileViewController.networkMode = networkMode
+    self.navigationController?.pushViewController(profileViewController, animated: true)
   }
 }

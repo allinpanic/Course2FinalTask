@@ -17,6 +17,9 @@ public final class MainVCBuilder: Builder {
     let tabBarController = UITabBarController()
     
     let feedViewController = FeedViewController(token: token)
+    let feedModel = FeedModel(networkMode: networkMode, token: token)
+    feedModel.dataManager = dataManager
+    
     let profileViewController = ProfileViewController(user: nil, token: token)
     let newPostViewController = NewPostViewController(token: token)
     
@@ -26,6 +29,7 @@ public final class MainVCBuilder: Builder {
     
     feedViewController.networkMode = networkMode
     feedViewController.dataManager = dataManager
+    feedViewController.feedModel = feedModel
     
     newPostViewController.networkMode = networkMode
     

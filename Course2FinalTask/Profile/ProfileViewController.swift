@@ -14,6 +14,16 @@ final class ProfileViewController: UIViewController {
   var networkMode: NetworkMode = .online
   var dataManager: CoreDataManager!
   
+  
+  private var profileView: ProfileViewProtocol = {
+    let view = ProfileView()
+    view.delegate = self
+    return view
+  }()
+  
+  
+  
+  
 // MARK: - Private properties
   
   private var token: String
@@ -23,46 +33,46 @@ final class ProfileViewController: UIViewController {
   
   private let keychainManager = KeychainManager()
   
-  private var reuseIdentifier = "imageCell"
+//  private var reuseIdentifier = "imageCell"
+//
+//  private lazy var profileScrollView: UIScrollView = {
+//    let scrollView = UIScrollView()
+//    scrollView.backgroundColor = .white
+//    scrollView.isScrollEnabled = true
+//    return scrollView
+//  }()
+//
+//  private lazy var userImagesCollectionView: UICollectionView = {
+//    let layout = UICollectionViewFlowLayout()
+//    layout.minimumInteritemSpacing = 0
+//    layout.minimumLineSpacing = 0
+//    let collectionView = UICollectionView(frame: .zero , collectionViewLayout: layout)
+//    collectionView.backgroundColor = .white
+//    collectionView.register(ImageCollectionViewCell.self, forCellWithReuseIdentifier: reuseIdentifier)
+//    collectionView.isScrollEnabled = false
+//    return collectionView
+//  }()
   
-  private lazy var profileScrollView: UIScrollView = {
-    let scrollView = UIScrollView()
-    scrollView.backgroundColor = .white
-    scrollView.isScrollEnabled = true
-    return scrollView
-  }()
-  
-  private lazy var userImagesCollectionView: UICollectionView = {
-    let layout = UICollectionViewFlowLayout()
-    layout.minimumInteritemSpacing = 0
-    layout.minimumLineSpacing = 0
-    let collectionView = UICollectionView(frame: .zero , collectionViewLayout: layout)
-    collectionView.backgroundColor = .white
-    collectionView.register(ImageCollectionViewCell.self, forCellWithReuseIdentifier: reuseIdentifier)
-    collectionView.isScrollEnabled = false
-    return collectionView
-  }()
-  
-  private lazy var profileInfoView: ProfileInfoView = {
-    let profileInfo = ProfileInfoView()
-    profileInfo.backgroundColor = .white
-    profileInfo.delegate = self
-    profileInfo.networkMode = self.networkMode
-    return profileInfo
-  }()
-  
-  private var indicator: UIActivityIndicatorView = {
-    let indicator = UIActivityIndicatorView()
-    indicator.style = .white
-    return indicator
-  }()
-  
-  private var dimmedView: UIView = {
-    let view = UIView()
-    view.backgroundColor = .black
-    view.alpha = 0.7
-    return view
-  }()
+//  private lazy var profileInfoView: ProfileInfoView = {
+//    let profileInfo = ProfileInfoView()
+//    profileInfo.backgroundColor = .white
+//    profileInfo.delegate = self
+//    profileInfo.networkMode = self.networkMode
+//    return profileInfo
+//  }()
+//  
+//  private var indicator: UIActivityIndicatorView = {
+//    let indicator = UIActivityIndicatorView()
+//    indicator.style = .white
+//    return indicator
+//  }()
+//  
+//  private var dimmedView: UIView = {
+//    let view = UIView()
+//    view.backgroundColor = .black
+//    view.alpha = 0.7
+//    return view
+//  }()
 // MARK: - Inits
   
   init (user: UserStruct?, token: String) {
@@ -230,6 +240,10 @@ extension ProfileViewController {
         
         DispatchQueue.main.async {
           let authenticationController = AuthoriseViewController()
+          let authModel = AuthoriseModel()
+          authenticationController.authModel = authModel
+          let dataManager = CoreDataManager(modelName: "UserPost")
+          authModel.dataManager = dataManager
           UIApplication.shared.windows.first?.rootViewController = authenticationController
         }
       }
@@ -238,8 +252,13 @@ extension ProfileViewController {
       dataManager.deleteAll(entity: Post.self)
       dataManager.deleteAll(entity: User.self)
       
+      let authModel = AuthoriseModel()
+      authModel.dataManager = dataManager
+      
       DispatchQueue.main.async {
         let authenticationController = AuthoriseViewController()
+       // let authModel = AuthoriseModel()
+        authenticationController.authModel = authModel
         UIApplication.shared.windows.first?.rootViewController = authenticationController
       }
     }
