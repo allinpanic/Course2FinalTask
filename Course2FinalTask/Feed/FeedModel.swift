@@ -13,7 +13,7 @@ protocol FeedModelDelegate: class {
   func getError(error: NetworkError)
   func showIndicator()
   func hideIndicator()
-  func navigateToProfileVC(user: UserStruct)
+  func navigateToProfileVC(user: UserData)
   func showOfflineAlert()
 }
 // MARK: - FeedModelProtocol
@@ -21,11 +21,11 @@ protocol FeedModelDelegate: class {
 protocol FeedModelProtocol: class {
   var delegate: FeedModelDelegate? { get set }
   var dataManager: CoreDataManager! { get set }
-  func getUser(withUserID userID: String, completionHandler: @escaping (UserStruct) -> Void) 
-  func getFeed(token: String, completionHandler: @escaping ([PostStruct]) -> Void)
-  func likePost(withPostID: String, completionHandler: @escaping (PostStruct) -> Void)
-  func unlikePost(withPostID: String, completionHandler: @escaping (PostStruct) -> Void)
-  func getLikes(withPostID: String, completionHandler: @escaping ([UserStruct]) -> Void)
+  func getUser(withUserID userID: String, completionHandler: @escaping (UserData) -> Void)
+  func getFeed(token: String, completionHandler: @escaping ([PostData]) -> Void)
+  func likePost(withPostID: String, completionHandler: @escaping (PostData) -> Void)
+  func unlikePost(withPostID: String, completionHandler: @escaping (PostData) -> Void)
+  func getLikes(withPostID: String, completionHandler: @escaping ([UserData]) -> Void)
 }
 // MARK: - FeedModel class
 
@@ -43,9 +43,9 @@ final class FeedModel: FeedModelProtocol {
     self.networkMode = networkMode
     self.token = token
   }
-// MARK: - Methods - getUser
+// MARK: GetUser
   
-  func getUser(withUserID userID: String, completionHandler: @escaping (UserStruct) -> Void) /*-> UserStruct*/ {
+  func getUser(withUserID userID: String, completionHandler: @escaping (UserData) -> Void) /*-> UserStruct*/ {
     switch networkMode {
     
     case .online:
@@ -59,7 +59,7 @@ final class FeedModel: FeedModelProtocol {
           
           case .success(let data):
             guard let user = NetworkManager.shared.parseJSON(jsonData: data,
-                                                             toType: UserStruct.self) else {return}
+                                                             toType: UserData.self) else {return}
             DispatchQueue.main.async {
               completionHandler(user)
             }
@@ -75,9 +75,9 @@ final class FeedModel: FeedModelProtocol {
       delegate?.showOfflineAlert()
     }
   }
-// MARK: - getFeed
+// MARK: GetFeed
   
-  func getFeed(token: String, completionHandler: @escaping ([PostStruct]) -> Void) {
+  func getFeed(token: String, completionHandler: @escaping ([PostData]) -> Void) {
     switch networkMode {
     case .online:
       let postsRequest = NetworkManager.shared.getFeedRequest(token: token)
@@ -88,7 +88,7 @@ final class FeedModel: FeedModelProtocol {
         switch result {
         
         case .success(let data):
-          guard let posts = NetworkManager.shared.parseJSON(jsonData: data, toType: [PostStruct].self) else {return}
+          guard let posts = NetworkManager.shared.parseJSON(jsonData: data, toType: [PostData].self) else {return}
 
           DispatchQueue.main.async {
             completionHandler(posts)
@@ -114,7 +114,7 @@ final class FeedModel: FeedModelProtocol {
       let converter = Converter()
       
       let fetchedPosts = dataManager.fetchData(for: Post.self, sortDescriptor: sortDescriptor)
-      var posts = [PostStruct]()
+      var posts = [PostData]()
       
       for post in fetchedPosts {
         guard let postStruct = converter.convertToStruct(post: post) else {return}        
@@ -126,9 +126,9 @@ final class FeedModel: FeedModelProtocol {
       }
     }
   }
-// MARK: - like - unlike
+// MARK: Like
   
-  func likePost(withPostID postID: String, completionHandler: @escaping (PostStruct) -> Void) {
+  func likePost(withPostID postID: String, completionHandler: @escaping (PostData) -> Void) {
     switch networkMode {
     
     case .online:
@@ -141,7 +141,7 @@ final class FeedModel: FeedModelProtocol {
         
         case .success(let data):
           guard let post = NetworkManager.shared.parseJSON(jsonData: data,
-                                                           toType: PostStruct.self) else {return}
+                                                           toType: PostData.self) else {return}
           DispatchQueue.main.async {
             completionHandler(post)
           }
@@ -158,8 +158,9 @@ final class FeedModel: FeedModelProtocol {
       delegate?.showOfflineAlert()
     }
   }
+  // MARK: Unlike
   
-  func unlikePost(withPostID postID: String, completionHandler: @escaping (PostStruct) -> Void) {
+  func unlikePost(withPostID postID: String, completionHandler: @escaping (PostData) -> Void) {
     switch networkMode {
     
     case .online:
@@ -172,7 +173,7 @@ final class FeedModel: FeedModelProtocol {
         
         case .success(let data):
           guard let post = NetworkManager.shared.parseJSON(jsonData: data,
-                                                           toType: PostStruct.self) else {return}
+                                                           toType: PostData.self) else {return}
           DispatchQueue.main.async {
             completionHandler(post)
           }
@@ -190,9 +191,9 @@ final class FeedModel: FeedModelProtocol {
     }
   }
 
-  // MARK: - getLikes
+  // MARK: GetLikes
   
-  func getLikes(withPostID postID: String, completionHandler: @escaping ([UserStruct]) -> Void) {
+  func getLikes(withPostID postID: String, completionHandler: @escaping ([UserData]) -> Void) {
     switch networkMode {
     
     case .online:
@@ -206,7 +207,7 @@ final class FeedModel: FeedModelProtocol {
         
         case .success(let data):
           guard let users = NetworkManager.shared.parseJSON(jsonData: data,
-                                                            toType: [UserStruct].self) else {return}
+                                                            toType: [UserData].self) else {return}
           completionHandler(users)
           
         case .failure(let error):

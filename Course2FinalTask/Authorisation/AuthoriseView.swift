@@ -20,10 +20,12 @@ protocol AuthoriseViewProtocol: UIView {
   var indicator: UIActivityIndicatorView { get }
   var loginTextField: UITextField { get }
   var passwordTextField: UITextField { get }
+  func showIndicator()
+  func hideIndicator()
 }
+// MARK: - AuthoriseView
 
 final class AuthoriseView: UIView, AuthoriseViewProtocol {
-  // MARK: - Properties
   weak var delegate: AuthoriseViewDelegate?
   
   lazy var loginTextField: UITextField = {
@@ -132,6 +134,26 @@ final class AuthoriseView: UIView, AuthoriseViewProtocol {
     } else {
       signInButton.isEnabled = false
       signInButton.alpha = 0.3
+    }
+  }
+  
+  func hideIndicator() {
+    indicator.stopAnimating()
+    indicator.hidesWhenStopped = true
+    indicator.removeFromSuperview()
+    dimmedView.removeFromSuperview()
+  }
+  
+  func showIndicator() {
+    addSubview(dimmedView)
+    dimmedView.snp.makeConstraints{
+      $0.edges.equalToSuperview()
+    }
+    
+    dimmedView.addSubview(indicator)
+    indicator.startAnimating()
+    indicator.snp.makeConstraints{
+      $0.center.equalToSuperview()
     }
   }
 }

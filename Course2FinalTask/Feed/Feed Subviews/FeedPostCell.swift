@@ -9,19 +9,18 @@
 import UIKit
 import SnapKit
 import Kingfisher
+// MARK: - FeedPostCellDelegate
 
 protocol FeedPostCellDelegate: UIViewController {
   func postHeaderViewTapped(userID: String)
-  
   //func likeButtonPressed(postID: String, index: Int)
   func like(postID: String, index: Int)
   func dislike(postId: String, index: Int)
-  
   func getLikesCount(postID: String, index: Int)
   func likesLabelTapped(postID: String, title: String)
-  
   func postImageDoubleTapped(imageView: UIImageView)
 }
+// MARK: - FeedPostCell
 
 final class FeedPostCell: UITableViewCell {
   
@@ -29,7 +28,7 @@ final class FeedPostCell: UITableViewCell {
   var index: Int = 0
   weak var delegate: FeedPostCellDelegate?
   
-  var post: PostStruct? {
+  var post: PostData? {
     didSet {
       guard let post = post else {return}
       
@@ -37,7 +36,6 @@ final class FeedPostCell: UITableViewCell {
     }
   }
   
-// MARK: - Private properties
    var likesCount: Int = 0 {
     didSet {
       postFooter.likesLabel.text = "Likes: \(likesCount)"
@@ -130,7 +128,7 @@ extension FeedPostCell {
     postFooter.likeButton.addTarget(self, action: #selector(likeButtonPressed), for: .touchUpInside)
   }
   
-  private func fillViews(post: PostStruct) {
+  private func fillViews(post: PostData) {
     let date = convertDate(dateString: post.createdTime)
     
     postHeader.authorNameLabel.text = post.authorUsername
@@ -213,32 +211,25 @@ extension FeedPostCell {
         
         delegate?.dislike(postId: postID, index: index)
         
-        if networkMode == .online {
-          post?.currentUserLikesThisPost = false
-          
-          
-          
-          likesCount -= 1
-          //postFooter.likeButton.tintColor = .lightGray
-        }
-       
+//        if networkMode == .online { -------------------------------------------------------------
+//          post?.currentUserLikesThisPost = false
+//
+//
+//
+//          likesCount -= 1
+//          //postFooter.likeButton.tintColor = .lightGray
+//        }
       } else {
-        
-        
         delegate?.like(postID: postID, index: index)
-        if networkMode == .online {
-          post?.currentUserLikesThisPost = true
-          
-          
-          likesCount += 1
-//          postFooter.likeButton.tintColor = .systemBlue
-        }
-        
-       
+//        if networkMode == .online { ----------------------------------------------
+//          post?.currentUserLikesThisPost = true
+//
+//          likesCount += 1
+////          postFooter.likeButton.tintColor = .systemBlue
+//        }
       }
       //delegate?.likeButtonPressed(postID: postID, index: self.index)
     }
-
 //    switch  networkMode {
 //
 //    case .online:

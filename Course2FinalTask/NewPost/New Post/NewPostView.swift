@@ -7,11 +7,13 @@
 //
 
 import UIKit
+// MARK: - NewPostViewProtocol
 
 protocol NewPostViewProtocol: UIView {
   var imagesCollectionView: UICollectionView { get set }
   var reusableCellID: String { get }
 }
+// MARK: - NewPostView
 
 final class NewPostView: UIView, NewPostViewProtocol {
   var reusableCellID = "smallImageCell"

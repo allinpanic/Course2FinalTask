@@ -17,14 +17,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     
     window = UIWindow(frame: UIScreen.main.bounds)
     
-    let authoriseViewController = AuthoriseViewController()
-    let authModel = AuthoriseModel()
-    
     let dataManager = CoreDataManager(modelName: "UserPost")
-    authModel.dataManager = dataManager
-    
-    authoriseViewController.authModel = authModel
-    
+
+    let authoriseViewController = Builder.createAuthViewController(dataManager: dataManager)    
     
     window?.rootViewController = authoriseViewController
     window?.makeKeyAndVisible()

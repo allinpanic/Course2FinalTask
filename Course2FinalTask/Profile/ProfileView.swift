@@ -7,20 +7,25 @@
 //
 
 import UIKit
+// MARK: - ProfileViewProtocol
 
 protocol ProfileViewProtocol: UIView {
-  var user: UserStruct! { get set }
+  var user: UserData! { get set }
   var indicator: UIActivityIndicatorView { get }
   var dimmedView: UIView { get }
   var userImagesCollectionView: UICollectionView { get set }
   var reuseIdentifier: String { get }
   func showFollowButton()
   func hideFollowButton()
-  func updateProfileInfoView(user: UserStruct, title: String)
+  func updateProfileInfoView(user: UserData, title: String)
+  
+  func showIndicator()
+  func hideIndicator()
 }
+// MARK: - ProfileView
 
 final class ProfileView: UIView, ProfileViewProtocol {
-  var user: UserStruct! {
+  var user: UserData! {
     didSet {
       profileInfoView.user = user
       profileInfoView.fillProfileInfo(networkMode: networkMode) { (_) in }
@@ -66,6 +71,7 @@ final class ProfileView: UIView, ProfileViewProtocol {
     view.alpha = 0.7
     return view
   }()
+  // MARK: - Inits
   
   override init(frame: CGRect) {
     super.init(frame: frame)
@@ -75,6 +81,7 @@ final class ProfileView: UIView, ProfileViewProtocol {
   required init?(coder: NSCoder) {
     fatalError("init(coder:) has not been implemented")
   }
+  // MARK: - SetupLayout
   
   private func setupLayout() {
     addSubview(profileScrollView)
@@ -98,6 +105,7 @@ final class ProfileView: UIView, ProfileViewProtocol {
       $0.height.equalTo(UIScreen.main.bounds.height + 100)
     }
   }
+  // MARK: - Protocol Methods
   
   func showFollowButton() {
     profileInfoView.followButton.isHidden = false
@@ -107,9 +115,29 @@ final class ProfileView: UIView, ProfileViewProtocol {
     profileInfoView.followButton.isHidden = true
   }
   
-  func updateProfileInfoView(user: UserStruct, title: String) {
+  func updateProfileInfoView(user: UserData, title: String) {
     profileInfoView.user = user
     profileInfoView.followersLabel.text = "Followers: \(user.followedByCount)"
     profileInfoView.followButton.setTitle("\(title)", for: .normal)
+  }
+  
+  func showIndicator() {
+    addSubview(dimmedView)
+    dimmedView.snp.makeConstraints{
+      $0.edges.equalToSuperview()
+    }
+    
+    dimmedView.addSubview(indicator)
+    indicator.startAnimating()
+    indicator.snp.makeConstraints{
+      $0.center.equalToSuperview()
+    }
+  }
+  
+  func hideIndicator() {
+    indicator.stopAnimating()
+    indicator.hidesWhenStopped = true
+    indicator.removeFromSuperview()
+    dimmedView.removeFromSuperview()
   }
 }

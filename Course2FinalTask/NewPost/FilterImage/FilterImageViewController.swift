@@ -15,9 +15,6 @@ final class FilterImageViewController: UIViewController {
   
   private var selectedImage: UIImage
   private var index: Int
-//  private var filters = Filters()
-  
-//  private let reuseIdentifier = "filterThumbnail"
   private let filterNames: [String] = []
   private var thumbnails: [UIImage] = []
   
@@ -29,38 +26,6 @@ final class FilterImageViewController: UIViewController {
     view.filtersPreviewCollectionView.dataSource = self
     return view
   }()
-  
-//  private lazy var imageViewToFilter: UIImageView = {
-//    let imageView = UIImageView()
-//    imageView.image = selectedImage
-//    imageView.contentMode = .scaleAspectFill
-//    return imageView
-//  }()
-//
-//  private lazy var filtersPreviewCollectionView: UICollectionView = {
-//    let layout = UICollectionViewFlowLayout()
-//    layout.scrollDirection = .horizontal
-//    layout.minimumInteritemSpacing = 16
-//    let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
-//    collectionView.backgroundColor = .white
-//    collectionView.register(FilteredThumbnailCell.self, forCellWithReuseIdentifier: reuseIdentifier)
-//    collectionView.dataSource = self
-//    collectionView.delegate = self
-//    return collectionView
-//  }()
-//
-//  private var indicator: UIActivityIndicatorView = {
-//    let indicator = UIActivityIndicatorView()
-//    indicator.style = .white
-//    return indicator
-//  }()
-//
-//  private var dimmedView: UIView = {
-//    let view = UIView()
-//    view.backgroundColor = .black
-//    view.alpha = 0.7
-//    return view
-//  }()
 // MARK: - Inits
   
   init(image: UIImage, index: Int) {
@@ -84,16 +49,13 @@ final class FilterImageViewController: UIViewController {
     super.viewDidLoad()
     
     filterImageModel.delegate = self
-    
-//    setupLayout()
+
     self.navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Next",
                                                              style: .plain,
                                                              target: self,
                                                              action: #selector(showAddDescriptionToPost))
     
-    thumbnails = filterImageModel.generateThumbnail(image: selectedImage)
-    
-    
+    thumbnails = filterImageModel.generateThumbnails(image: selectedImage)
     filterCollectionView()
   }
 }
@@ -101,14 +63,14 @@ final class FilterImageViewController: UIViewController {
 
 extension FilterImageViewController: UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
   func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-    return filterImageModel.filtersCount() //filters.filterNamesArray.count
+    return filterImageModel.filtersCount()
   }
   
   func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
     guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: filterImageView.reuseIdentifier, for: indexPath) as? FilteredThumbnailCell else {return UICollectionViewCell()}
     
     cell.image = thumbnails[indexPath.row]
-    cell.filterName = filterImageModel.filterName(withIndex: indexPath.row)//filters.filterNamesArray[indexPath.row]
+    cell.filterName = filterImageModel.filterName(withIndex: indexPath.row)
     
     return cell
   }
@@ -124,66 +86,15 @@ extension FilterImageViewController: UICollectionViewDataSource, UICollectionVie
     filterImageModel.filterImage(image: imageToFilter, filterIndex: indexPath.row) { [weak self] (filteredImage) in
       self?.filterImageView.image = filteredImage
     }
-    
-    
-    
-    
-    
-    
-    
-    
-//    let imageToFilter = self.selectedImage
-//    guard let ciImage = CIImage(image: imageToFilter) else {return}
-//
-//    showIndicator()
-//    DispatchQueue.global(qos: .userInteractive).async { [weak self] in
-//      guard let filterName = self?.filters.filterNamesArray[indexPath.row] else {return}
-//
-//      let parameters = self?.filters.getParameters(filter: filterName,
-//                                                   image: imageToFilter)
-//      let filteredImage = self?.filters.applyFilter(name: filterName,
-//                                                    parameters: parameters ?? [kCIInputImageKey: ciImage])
-//      DispatchQueue.main.async {
-//        self?.hideIndicator()
-//        self?.imageViewToFilter.image = filteredImage
-//      }
-//    }
   }
 }
-//MARK: - Layout
-
-extension FilterImageViewController {
-//  private func setupLayout() {
-//    view.backgroundColor = .white
-//    view.addSubview(imageViewToFilter)
-//    view.addSubview(filtersPreviewCollectionView)
-//    
-//    self.navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Next",
-//                                                             style: .plain,
-//                                                             target: self,
-//                                                             action: #selector(showAddDescriptionToPost))
-//    
-//    imageViewToFilter.snp.makeConstraints{
-//      $0.top.leading.trailing.equalTo(view.safeAreaLayoutGuide)
-//    }
-//    
-//    filtersPreviewCollectionView.snp.makeConstraints{
-//      $0.bottom.equalTo(view.safeAreaLayoutGuide.snp.bottom).inset(16)
-//      $0.leading.trailing.equalToSuperview()
-//      $0.height.equalTo(120)
-//    }
-//  }
-}
+// MARK: - ButtonHandler
 
 extension FilterImageViewController {
   @objc private func showAddDescriptionToPost() {
-    let addDescriptionViewController = AddDescriptionViewController(filteredImage: filterImageView.imageViewToFilter.image)
-    
-    let addDescModel = AddDescriptionModel(networkMode: networkMode, token: token)
-//    addDescriptionViewController.token = token
-//    addDescriptionViewController.networkMode = networkMode
-    
-    addDescriptionViewController.addDescModel = addDescModel
+    let addDescriptionViewController = Builder.createAddDescriptionViewController(image: filterImageView.imageViewToFilter.image,
+                                                                                  networkMode: networkMode,
+                                                                                  token: token)
     
     self.navigationController?.pushViewController(addDescriptionViewController, animated: true)
   }
@@ -192,79 +103,11 @@ extension FilterImageViewController {
 
 extension FilterImageViewController {
   
-//  private func generateThumbnails() {
-//    thumbnails = []
-//
-//    let uiimage = selectedImage
-//
-//    let options = [
-//      kCGImageSourceCreateThumbnailWithTransform: true,
-//      kCGImageSourceCreateThumbnailFromImageAlways: true,
-//      kCGImageSourceThumbnailMaxPixelSize: 60] as CFDictionary
-//
-//    guard let imageData = uiimage.pngData(),
-//      let imageSource = CGImageSourceCreateWithData(imageData as NSData, nil),
-//      let image = CGImageSourceCreateThumbnailAtIndex(imageSource, 0, options)
-//      else { return }
-//
-//    let thumbnail = UIImage(cgImage: image)
-//    let count = filters.filterNamesArray.count
-//
-//    for _ in 0...count - 1 {
-//      thumbnails?.append(thumbnail)
-//    }
-//  }
-  
   private func filterCollectionView() {
-    //guard let thumbnails = thumbnails else {return}
     filterImageModel.filterCollectionView(thumbnails: thumbnails)
-    
-    
-    
-    
-    
-    
-//    let globalQueue = DispatchQueue.global(qos: .background)
-//    
-//    for (index, filter) in filters.filterNamesArray.enumerated() {
-//      guard let thumbnails = thumbnails else {continue}
-//      
-//      globalQueue.async { [weak self] in
-//        guard let parameters = self?.filters.getParameters(filter: filter, image: thumbnails[index]),
-//              let image = self?.filters.applyFilter(name: filter, parameters: parameters) else {return}
-//        
-//        self?.thumbnails?[index] = image
-//        
-//        DispatchQueue.main.async {
-//          self?.filtersPreviewCollectionView.reloadData()
-//        }
-//      }
-//    }
   }
 }
-//MARK: - Indicator
-
-extension FilterImageViewController {
-  func showIndicator() {
-    view.addSubview(filterImageView.dimmedView)
-    filterImageView.dimmedView.snp.makeConstraints{
-      $0.edges.equalToSuperview()
-    }
-
-    filterImageView.dimmedView.addSubview(filterImageView.indicator)
-    filterImageView.indicator.startAnimating()
-    filterImageView.indicator.snp.makeConstraints{
-      $0.center.equalToSuperview()
-    }
-  }
-
-  func hideIndicator() {
-    filterImageView.indicator.stopAnimating()
-    filterImageView.indicator.hidesWhenStopped = true
-    filterImageView.indicator.removeFromSuperview()
-    filterImageView.dimmedView.removeFromSuperview()
-  }
-}
+//MARK: - FilterImageModelDelegate
 
 extension FilterImageViewController: FilterImageModelDelegate {
   func updateCollectionView(withImage image: UIImage, atIndex: Int) {
@@ -272,7 +115,11 @@ extension FilterImageViewController: FilterImageModelDelegate {
     filterImageView.filtersPreviewCollectionView.reloadData()
   }
   
+  func showIndicator() {
+    filterImageView.showIndicator()
+  }
   
+  func hideIndicator() {
+    filterImageView.hideIndicator()
+  }
 }
-
-

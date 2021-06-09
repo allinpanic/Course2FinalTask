@@ -97,7 +97,7 @@ final class CoreDataManager {
     return fetchedResult
   }
   
-  func savePost(post: PostStruct, likesCount: Int? = nil) {
+  func savePost(post: PostData, likesCount: Int? = nil) {
     bgContext.performAndWait {
       let postObject = createObject(from: Post.self, context: bgContext)
       
@@ -124,7 +124,7 @@ final class CoreDataManager {
     }
   }
   
-  func saveCurrentUser(currUser: UserStruct) {
+  func saveCurrentUser(currUser: UserData) {
     bgContext.performAndWait {
       
       let userObject = createObject(from: User.self, context: bgContext)

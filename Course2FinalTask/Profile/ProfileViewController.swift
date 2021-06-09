@@ -7,14 +7,14 @@
 //
 
 import UIKit
+// MARK: - ProfileViewController
 
 final class ProfileViewController: UIViewController {
 
-  var user: UserStruct?
+  var user: UserData?
   var networkMode: NetworkMode = .online
-  //var dataManager: CoreDataManager!
   var profileModel: ProfileModelProtocol!
-  
+  // MARK: - Private properties
   
   private lazy var profileView: ProfileViewProtocol = {
     let view = ProfileView()
@@ -26,22 +26,14 @@ final class ProfileViewController: UIViewController {
     view.profileInfoView.delegate = self
     return view
   }()
-  
-  
-  
-  
-// MARK: - Private properties
-  
+
   private var token: String
   private let session = URLSession.shared
-  private var userPosts: [PostStruct]?
-  private var userAvatar: UIImage?
-  
-//  private let keychainManager = KeychainManager()
+  private var userPosts: [PostData]?
 
 // MARK: - Inits
   
-  init (user: UserStruct?, token: String) {
+  init (user: UserData?, token: String) {
     self.user = user
     self.token = token
     super.init(nibName: nil, bundle: nil)
@@ -120,12 +112,11 @@ extension ProfileViewController: UICollectionViewDataSource, UICollectionViewDel
 // MARK: - ProfileInfoViewDelegate
 
 extension ProfileViewController: ProfileInfoViewDelegate {
-  func followButtonTapped(user: UserStruct) {
+  func followButtonTapped(user: UserData) {
     if user.currentUserFollowsThisUser {
       profileModel.unfollow(userID: user.id) { [weak self] (user) in
         self?.profileView.updateProfileInfoView(user: user, title: "Follow")
       }
-      
     }else {
       profileModel.follow(userID: user.id) { [weak self] (user) in
         self?.profileView.updateProfileInfoView(user: user, title: "Unfollow")
@@ -143,29 +134,6 @@ extension ProfileViewController: ProfileInfoViewDelegate {
     profileModel.getFollowingUsers(userID: userID, completionHandler: { [weak self] (userList) in
       self?.navigateToUserList(userList: userList, title: title)
     })
-  }
-}
-//MARK: - Activity indicator methods
-
-extension ProfileViewController {
-  func showIndicator() {
-    view.addSubview(profileView.dimmedView)
-    profileView.dimmedView.snp.makeConstraints{
-      $0.edges.equalToSuperview()
-    }
-    
-    profileView.dimmedView.addSubview(profileView.indicator)
-    profileView.indicator.startAnimating()
-    profileView.indicator.snp.makeConstraints{
-      $0.center.equalToSuperview()
-    }
-  }
-  
-  func hideIndicator() {
-    profileView.indicator.stopAnimating()
-    profileView.indicator.hidesWhenStopped = true
-    profileView.indicator.removeFromSuperview()
-    profileView.dimmedView.removeFromSuperview()
   }
 }
 // MARK: - Private methods
@@ -204,14 +172,18 @@ extension ProfileViewController {
     }
   }
   
-  private func navigateToUserList(userList: [UserStruct], title: String) {
-    let userListController = UsersListViewController(userList: userList, title: title, token: token, networkMode: networkMode)
-    userListController.dataManager = profileModel.dataManager
+  private func navigateToUserList(userList: [UserData], title: String) {
+    
+    let userListController = Builder.createUserListViewController(userList: userList,
+                                                                  dataManager: profileModel.dataManager,
+                                                                  networkMode: networkMode,
+                                                                  token: token,
+                                                                  title: title)
     
     navigationController?.pushViewController(userListController, animated: true)
   }
   
-  private func configureFollowButton(user: UserStruct) {
+  private func configureFollowButton(user: UserData) {
     switch networkMode {
     
     case .online:
@@ -248,15 +220,22 @@ extension ProfileViewController {
 
 extension ProfileViewController: ProfileModelDelegate {
   func navigateToAuth() {
-    let authenticationController = AuthoriseViewController()
-    let authModel = AuthoriseModel()
-    authenticationController.authModel = authModel
     let dataManager = CoreDataManager(modelName: "UserPost")
-    authModel.dataManager = dataManager
+    
+    let authenticationController = Builder.createAuthViewController(dataManager: dataManager)
+    
     UIApplication.shared.windows.first?.rootViewController = authenticationController
   }
   
   func getError(error: NetworkError) {
     showAlert(error: error)
+  }
+  
+  func showIndicator() {
+    profileView.showIndicator()
+  }
+  
+  func hideIndicator() {
+    profileView.hideIndicator()
   }
 }

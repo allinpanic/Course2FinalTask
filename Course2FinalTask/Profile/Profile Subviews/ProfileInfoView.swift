@@ -7,19 +7,20 @@
 //
 
 import UIKit
+// MARK: - ProfileInfoViewDelegate
 
 protocol ProfileInfoViewDelegate: UIViewController {
   func followersTapped(userID: String, title: String)
   func followingTapped(userID: String, title: String)
   func showIndicator()
   func hideIndicator()
-  func followButtonTapped(user: UserStruct)
+  func followButtonTapped(user: UserData)
 }
+// MARK: - ProfileInfoView
 
 final class ProfileInfoView: UIView {
   weak var delegate: ProfileInfoViewDelegate?
-  var user: UserStruct?
-//MARK: - Private properties
+  var user: UserData?
   
   private let session = URLSession.shared
   

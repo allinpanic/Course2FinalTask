@@ -14,7 +14,7 @@ protocol AuthoriseModelDelegate: class {
   func getError(error: NetworkError)
   func showIndicator()
   func hideIndicator()
-  func navigateToMainViewController(currentUser: UserStruct, token: String, networkMode: NetworkMode, dataManager: CoreDataManager)
+  func navigateToMainViewController(currentUser: UserData, token: String, networkMode: NetworkMode, dataManager: CoreDataManager)
 }
 // MARK: - AuthoriseModelProtocol
 
@@ -25,9 +25,9 @@ protocol AuthoriseModelProtocol: class {
   func signIn(login: String, password: String)
   func getTokenFromKeychain() -> String?
 }
+// MARK: - AuthoriseModel
 
 final class AuthoriseModel: AuthoriseModelProtocol {
-// MARK: - Properties
   
   var dataManager: CoreDataManager!
   
@@ -35,8 +35,7 @@ final class AuthoriseModel: AuthoriseModelProtocol {
   private let session = URLSession.shared
   
   weak var delegate: AuthoriseModelDelegate?
-  
-// MARK: - Methods
+// MARK: Check Token
   
   func checkToken(token: String) {    
     NetworkManager.shared.getCurrentUser(token: token,
@@ -88,6 +87,7 @@ final class AuthoriseModel: AuthoriseModelProtocol {
       }
     }
   }
+  // MARK: SignIn
   
   func signIn(login: String, password: String) {
     NetworkManager.shared.signIn(userName: login,
@@ -106,7 +106,7 @@ final class AuthoriseModel: AuthoriseModelProtocol {
         DispatchQueue.main.async {
           guard let dataManager = self?.dataManager else {return}
           
-          let tabBarController = MainVCBuilder.createMainViewController(currentUser: currentUser,
+          let tabBarController = Builder.createMainViewController(currentUser: currentUser,
                                                                         token: token,
                                                                         networkMode: .online,
                                                                         dataManager: dataManager)

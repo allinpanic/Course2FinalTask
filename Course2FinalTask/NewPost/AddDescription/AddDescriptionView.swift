@@ -7,12 +7,14 @@
 //
 
 import UIKit
+// MARK: - AddDescriptionViewProtocol
 
 protocol AddDescriptionViewProtocol: UIView {
   var image: UIImage! { get set }
   var filteredImageView: UIImageView { get set }
   var descriptionTextField: UITextField { get set }
 }
+// MARK: - AddDescriptionView
 
 final class AddDescriptionView: UIView, AddDescriptionViewProtocol {
   
@@ -41,6 +43,7 @@ final class AddDescriptionView: UIView, AddDescriptionViewProtocol {
     textField.borderStyle = .roundedRect
     return textField
   }()
+  // MARK: - Inits
   
   override init(frame: CGRect) {
     super.init(frame: frame)
@@ -51,6 +54,7 @@ final class AddDescriptionView: UIView, AddDescriptionViewProtocol {
   required init?(coder: NSCoder) {
     fatalError("init(coder:) has not been implemented")
   }
+  // MARK: - SetupLayout
   
   private func setupLayout() {
     backgroundColor = .white

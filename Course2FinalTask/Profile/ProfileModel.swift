@@ -7,6 +7,7 @@
 //
 
 import Foundation
+// MARK: - ProfileModelDelegate
 
 protocol ProfileModelDelegate: class {
   func navigateToAuth()
@@ -15,18 +16,20 @@ protocol ProfileModelDelegate: class {
   func showIndicator()
   func  hideIndicator()
 }
+// MARK: - ProfileModelProtocol
 
 protocol ProfileModelProtocol: class {
   var delegate: ProfileModelDelegate? { get set }
   var dataManager: CoreDataManager! { get set }
   func logOut()
-  func follow(userID: String, completionHandler: @escaping (UserStruct) -> Void)
-  func unfollow(userID: String, completionHandler: @escaping (UserStruct) -> Void)
-  func getUserPosts(user: UserStruct, completionHandler: @escaping ([PostStruct]) -> Void)
-  func getFollowers(userID: String, completionHandler: @escaping ([UserStruct]) -> Void)
-  func getFollowingUsers(userID: String, completionHandler: @escaping ([UserStruct]) -> Void)
-  func checkIsCurrentUser(user: UserStruct, handler: @escaping (Bool) -> Void)
+  func follow(userID: String, completionHandler: @escaping (UserData) -> Void)
+  func unfollow(userID: String, completionHandler: @escaping (UserData) -> Void)
+  func getUserPosts(user: UserData, completionHandler: @escaping ([PostData]) -> Void)
+  func getFollowers(userID: String, completionHandler: @escaping ([UserData]) -> Void)
+  func getFollowingUsers(userID: String, completionHandler: @escaping ([UserData]) -> Void)
+  func checkIsCurrentUser(user: UserData, handler: @escaping (Bool) -> Void)
 }
+// MARK: - ProfileModel
 
 final class ProfileModel: ProfileModelProtocol {
   weak var delegate: ProfileModelDelegate?
@@ -37,13 +40,12 @@ final class ProfileModel: ProfileModelProtocol {
   private var keychainManager = KeychainManager()
   private var session = URLSession.shared
   
-  
   init(networkMode: NetworkMode, token: String) {
     self.networkMode = networkMode
     self.token = token
   }
   
-// MARK: logOut
+// MARK: LogOut
   func logOut() {
     let _ = keychainManager.deleteToken(service: "courseTask", account: nil)
     
@@ -72,9 +74,9 @@ final class ProfileModel: ProfileModelProtocol {
       }
     }
   }
-  // MARK: - follow
+  // MARK: - Follow
   
-  func follow(userID: String, completionHandler: @escaping (UserStruct) -> Void) {
+  func follow(userID: String, completionHandler: @escaping (UserData) -> Void) {
     switch networkMode {
     
     case .online:
@@ -87,7 +89,7 @@ final class ProfileModel: ProfileModelProtocol {
         
         case .success(let data):
           guard let user = NetworkManager.shared.parseJSON(jsonData: data,
-                                                           toType: UserStruct.self) else {return}
+                                                           toType: UserData.self) else {return}
           DispatchQueue.main.async {
             completionHandler(user)
           }
@@ -103,9 +105,9 @@ final class ProfileModel: ProfileModelProtocol {
       delegate?.showOfflineAlert()
     }
   }
-  // MARK: - unfollow
+  // MARK: - Unfollow
   
-  func unfollow(userID: String, completionHandler: @escaping (UserStruct) -> Void) {
+  func unfollow(userID: String, completionHandler: @escaping (UserData) -> Void) {
     switch networkMode {
     
     case .online:
@@ -118,7 +120,7 @@ final class ProfileModel: ProfileModelProtocol {
         
         case .success(let data):
           guard let user = NetworkManager.shared.parseJSON(jsonData: data,
-                                                           toType: UserStruct.self) else {return}
+                                                           toType: UserData.self) else {return}
           DispatchQueue.main.async {
             completionHandler(user)
           }
@@ -134,9 +136,9 @@ final class ProfileModel: ProfileModelProtocol {
       delegate?.showOfflineAlert()
     }
   }
-  // MARK: - get followers
+  // MARK: - Get followers
   
-  func getFollowers(userID: String, completionHandler: @escaping ([UserStruct]) -> Void) {
+  func getFollowers(userID: String, completionHandler: @escaping ([UserData]) -> Void) {
     switch networkMode {
     
     case .online:
@@ -151,7 +153,7 @@ final class ProfileModel: ProfileModelProtocol {
         
         case .success(let data):
           guard let usersArray = NetworkManager.shared.parseJSON(jsonData: data,
-                                                                 toType: [UserStruct].self) else {return}
+                                                                 toType: [UserData].self) else {return}
           DispatchQueue.main.async{
             completionHandler(usersArray)
           }
@@ -167,9 +169,9 @@ final class ProfileModel: ProfileModelProtocol {
       delegate?.showOfflineAlert()
     }
   }
-  // MARK: - get following
+  // MARK: - Get following
   
-  func getFollowingUsers(userID: String, completionHandler: @escaping ([UserStruct]) -> Void) {
+  func getFollowingUsers(userID: String, completionHandler: @escaping ([UserData]) -> Void) {
     switch networkMode {
     
     case .online:
@@ -184,7 +186,7 @@ final class ProfileModel: ProfileModelProtocol {
         
         case .success(let data):
           guard let usersArray = NetworkManager.shared.parseJSON(jsonData: data,
-                                                                 toType: [UserStruct].self) else {return}
+                                                                 toType: [UserData].self) else {return}
           DispatchQueue.main.async{
             completionHandler(usersArray)
           }
@@ -200,9 +202,9 @@ final class ProfileModel: ProfileModelProtocol {
       delegate?.showOfflineAlert()
     }
   }
-  // MARK: - check is current user
+  // MARK: - Check is current user
   
-  func checkIsCurrentUser(user: UserStruct, handler: @escaping (Bool) -> Void) {
+  func checkIsCurrentUser(user: UserData, handler: @escaping (Bool) -> Void) {
     let currentUserRequest = NetworkManager.shared.currentUserRequest(token: token)
     
     NetworkManager.shared.performRequest(request: currentUserRequest,
@@ -212,7 +214,7 @@ final class ProfileModel: ProfileModelProtocol {
       
       case .success(let data):
         guard let currenUser = NetworkManager.shared.parseJSON(jsonData: data,
-                                                               toType: UserStruct.self) else {return}
+                                                               toType: UserData.self) else {return}
         if user.id == currenUser.id  {
           handler(true)
         } else {
@@ -226,9 +228,9 @@ final class ProfileModel: ProfileModelProtocol {
       }
     }
   }
-  // MARK: - get user posts
+  // MARK: - Get user posts
   
-  func getUserPosts(user: UserStruct, completionHandler: @escaping ([PostStruct]) -> Void) {
+  func getUserPosts(user: UserData, completionHandler: @escaping ([PostData]) -> Void) {
     switch networkMode {
     
     case .online:
@@ -241,8 +243,8 @@ final class ProfileModel: ProfileModelProtocol {
         
         case .success(let data):
           guard let posts = NetworkManager.shared.parseJSON(jsonData: data,
-                                                            toType: [PostStruct].self) else {return}
-          let userPosts: [PostStruct] = posts.reversed()
+                                                            toType: [PostData].self) else {return}
+          let userPosts: [PostData] = posts.reversed()
           
           DispatchQueue.main.async {
             completionHandler(userPosts)
@@ -265,7 +267,7 @@ final class ProfileModel: ProfileModelProtocol {
       }
       
     case .offline:
-      var userPosts = [PostStruct]()
+      var userPosts = [PostData]()
       
       let predicate = NSPredicate(format: "author == %@", user.id)
       let sortDescriptor = NSSortDescriptor(key: #keyPath(Post.createdTime), ascending: false)

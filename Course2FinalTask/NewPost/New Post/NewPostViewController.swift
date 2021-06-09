@@ -7,6 +7,7 @@
 //
 
 import UIKit
+// MARK: - NewPostViewController
 
 final class NewPostViewController: UIViewController {
   var networkMode: NetworkMode = .online
@@ -63,11 +64,11 @@ extension NewPostViewController: UICollectionViewDataSource, UICollectionViewDel
  
   func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
     if let image = minImages[indexPath.row] {
-      let filterImageViewController = FilterImageViewController(image: image, index: indexPath.row)
-      let filterImageModel = FilterImageModel()
-      filterImageViewController.token = token
-      filterImageViewController.networkMode = networkMode
-      filterImageViewController.filterImageModel = filterImageModel
+      let filterImageViewController = Builder.createFilterImageController(image: image,
+                                                                          index: indexPath.row,
+                                                                          networkMode: networkMode,
+                                                                          token: token)
+
       self.navigationController?.pushViewController(filterImageViewController, animated: true)
     }
   }

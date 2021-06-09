@@ -47,7 +47,7 @@
 		E98603822670EFDF00B3141E /* AddDescriptionModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E98603812670EFDF00B3141E /* AddDescriptionModel.swift */; };
 		E9A8772924124B9C0004F142 /* FeedViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9A8772824124B9C0004F142 /* FeedViewController.swift */; };
 		E9A8772B24124D200004F142 /* FeedPostCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9A8772A24124D200004F142 /* FeedPostCell.swift */; };
-		E9AD5D77266BBDD600D170D8 /* MainVCBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9AD5D76266BBDD600D170D8 /* MainVCBuilder.swift */; };
+		E9AD5D77266BBDD600D170D8 /* Builder.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9AD5D76266BBDD600D170D8 /* Builder.swift */; };
 		E9AD5D79266CC40000D170D8 /* AuthoriseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9AD5D78266CC40000D170D8 /* AuthoriseView.swift */; };
 		E9AD5D7B266D241C00D170D8 /* AuthoriseModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9AD5D7A266D241C00D170D8 /* AuthoriseModel.swift */; };
 		E9D78A602487DBC500FCA5D1 /* FollowButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9D78A5F2487DBC500FCA5D1 /* FollowButton.swift */; };
@@ -112,7 +112,7 @@
 		E98603812670EFDF00B3141E /* AddDescriptionModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddDescriptionModel.swift; sourceTree = "<group>"; };
 		E9A8772824124B9C0004F142 /* FeedViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedViewController.swift; sourceTree = "<group>"; };
 		E9A8772A24124D200004F142 /* FeedPostCell.swift */ = {isa = PBXFileReference; indentWidth = 2; lastKnownFileType = sourcecode.swift; path = FeedPostCell.swift; sourceTree = "<group>"; };
-		E9AD5D76266BBDD600D170D8 /* MainVCBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainVCBuilder.swift; sourceTree = "<group>"; };
+		E9AD5D76266BBDD600D170D8 /* Builder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Builder.swift; sourceTree = "<group>"; };
 		E9AD5D78266CC40000D170D8 /* AuthoriseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthoriseView.swift; sourceTree = "<group>"; };
 		E9AD5D7A266D241C00D170D8 /* AuthoriseModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthoriseModel.swift; sourceTree = "<group>"; };
 		E9D78A5F2487DBC500FCA5D1 /* FollowButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FollowButton.swift; sourceTree = "<group>"; };
@@ -170,7 +170,7 @@
 		74B79256202B3254006BCB41 /* Course2FinalTask */ = {
 			isa = PBXGroup;
 			children = (
-				E9AD5D76266BBDD600D170D8 /* MainVCBuilder.swift */,
+				E9AD5D76266BBDD600D170D8 /* Builder.swift */,
 				E9270999260F1DD700773803 /* KeychainManager.swift */,
 				E92709A0260F5F8100773803 /* extension UIViewController.swift */,
 				E914B533252B12060035AB88 /* Authorisation */,
@@ -317,6 +317,14 @@
 			path = AddDescription;
 			sourceTree = "<group>";
 		};
+		E98603832671030800B3141E /* UserListSubview */ = {
+			isa = PBXGroup;
+			children = (
+				E97D7BFC241C0EB5007509DC /* UserTableViewCell.swift */,
+			);
+			path = UserListSubview;
+			sourceTree = "<group>";
+		};
 		E9A905FB2487B351001D00E1 /* New Post Subviews */ = {
 			isa = PBXGroup;
 			children = (
@@ -340,9 +348,9 @@
 			isa = PBXGroup;
 			children = (
 				E9DEF4BF241BD5C200D8E9B3 /* UsersListViewController.swift */,
-				E97D7BFC241C0EB5007509DC /* UserTableViewCell.swift */,
 				E98603722670D3D500B3141E /* UserListView.swift */,
 				E98603742670D3E600B3141E /* UserListModel.swift */,
+				E98603832671030800B3141E /* UserListSubview */,
 			);
 			path = "Users List";
 			sourceTree = "<group>";
@@ -498,7 +506,7 @@
 				E9860371266FC3EF00B3141E /* ProfileModel.swift in Sources */,
 				E97D7BFD241C0EB5007509DC /* UserTableViewCell.swift in Sources */,
 				E98603802670EFCE00B3141E /* AddDescriptionView.swift in Sources */,
-				E9AD5D77266BBDD600D170D8 /* MainVCBuilder.swift in Sources */,
+				E9AD5D77266BBDD600D170D8 /* Builder.swift in Sources */,
 				74B79258202B3254006BCB41 /* AppDelegate.swift in Sources */,
 				E986036B266E06A700B3141E /* FeedView.swift in Sources */,
 				E968D8E425C044F00034CDF3 /* User.swift in Sources */,

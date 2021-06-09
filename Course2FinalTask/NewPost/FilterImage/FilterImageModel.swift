@@ -7,33 +7,34 @@
 //
 
 import UIKit
+// MARK: - FilterImageModelDelegate
 
 protocol FilterImageModelDelegate: class {
   func showIndicator()
   func hideIndicator()
   func updateCollectionView(withImage: UIImage, atIndex: Int)
-  
 }
+// MARK: - FilterImageModelProtocol
 
 protocol FilterImageModelProtocol: class {
   var delegate: FilterImageModelDelegate? { get set }
-  
-  func generateThumbnail(image: UIImage) -> [UIImage]
+  func generateThumbnails(image: UIImage) -> [UIImage]
   func filtersCount() -> Int
   func filterName(withIndex index: Int) -> String
   func filterImage(image: UIImage, filterIndex: Int, completionHandler: @escaping (UIImage) -> Void)
   func filterCollectionView(thumbnails: [UIImage])
 }
+// MARK: - FilterImageModel
 
 final class FilterImageModel: FilterImageModelProtocol {
   weak var delegate: FilterImageModelDelegate?
   
   private let filters = Filters()
   
-  func generateThumbnail(image: UIImage) -> [UIImage] {
+  // MARK: GenerateThimbnails
+  
+  func generateThumbnails(image: UIImage) -> [UIImage] {
     var thumbnails = [UIImage]()
-    
-   // let uiimage = selectedImage
     
     let options = [
       kCGImageSourceCreateThumbnailWithTransform: true,
@@ -54,6 +55,7 @@ final class FilterImageModel: FilterImageModelProtocol {
     
     return thumbnails
   }
+  // MARK: Filter Methods
   
   func filtersCount() -> Int {
     return filters.filterNamesArray.count
@@ -64,10 +66,10 @@ final class FilterImageModel: FilterImageModelProtocol {
   }
   
   func filterImage(image: UIImage, filterIndex: Int, completionHandler: @escaping (UIImage) -> Void) {
-   // let imageToFilter = self.selectedImage
     guard let ciImage = CIImage(image: image) else {return}
     
     delegate?.showIndicator()
+    
     DispatchQueue.global(qos: .userInteractive).async { [weak self] in
       guard let filterName = self?.filters.filterNamesArray[filterIndex] else {return}
       
@@ -81,7 +83,6 @@ final class FilterImageModel: FilterImageModelProtocol {
         self?.delegate?.hideIndicator()
         
         completionHandler(filteredImage)
-        //self?.imageViewToFilter.image = filteredImage
       }
     }
   }
@@ -90,43 +91,15 @@ final class FilterImageModel: FilterImageModelProtocol {
     let globalQueue = DispatchQueue.global(qos: .background)
     
     for (index, filter) in filters.filterNamesArray.enumerated() {
-//      guard let thumbnails = thumbnails else {continue}
       
       globalQueue.async { [weak self] in
         guard let parameters = self?.filters.getParameters(filter: filter, image: thumbnails[index]),
               let image = self?.filters.applyFilter(name: filter, parameters: parameters) else {return}
         
-//        self?.thumbnails?[index] = image
-        
         DispatchQueue.main.async {
-          
           self?.delegate?.updateCollectionView(withImage: image, atIndex: index)
-          
-          
-//          self?.filtersPreviewCollectionView.reloadData()
         }
       }
     }
   }
-  
-  
-//  func filter(thumbnails: [UIImage], completionHandler: @escaping ([UIImage]) -> Void) {
-//    let globalQueue = DispatchQueue.global(qos: .background)
-//    
-//    for (index, filter) in filters.filterNamesArray.enumerated() {
-//      guard let thumbnails = thumbnails else {continue}
-//      
-//      globalQueue.async { [weak self] in
-//        guard let parameters = self?.filters.getParameters(filter: filter, image: thumbnails[index]),
-//              let image = self?.filters.applyFilter(name: filter, parameters: parameters) else {return}
-//        
-//        self?.thumbnails?[index] = image
-//        
-//        DispatchQueue.main.async {
-//          self?.filtersPreviewCollectionView.reloadData()
-//        }
-//      }
-//    }
-//  }
-  
 }

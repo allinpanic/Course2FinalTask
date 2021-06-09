@@ -7,11 +7,13 @@
 //
 
 import UIKit
+// MARK: - UserListViewProtocol
 
 protocol UserListViewProtocol: UIView {
   var usersTableView: UITableView { get set }
   func deselectCurrentRow()
 }
+// MARK: - UserListView
 
 final class UserListView: UIView, UserListViewProtocol {
   

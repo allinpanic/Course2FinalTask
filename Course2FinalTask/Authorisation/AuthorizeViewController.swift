@@ -7,9 +7,10 @@
 //
 
 import UIKit
+// MARK: - AuthoriseViewController
 
 final class AuthoriseViewController: UIViewController {
-  // MARK: - Properties
+  
   private lazy var authView: AuthoriseViewProtocol = {
     let view = AuthoriseView()
     view.delegate = self
@@ -79,8 +80,8 @@ extension AuthoriseViewController: AuthoriseModelDelegate {
     showAlert(error: error)
   }
   
-  func navigateToMainViewController(currentUser: UserStruct, token: String, networkMode: NetworkMode, dataManager: CoreDataManager) {
-    let tabBarController = MainVCBuilder.createMainViewController(currentUser: currentUser,
+  func navigateToMainViewController(currentUser: UserData, token: String, networkMode: NetworkMode, dataManager: CoreDataManager) {
+    let tabBarController = Builder.createMainViewController(currentUser: currentUser,
                                                                   token: token,
                                                                   networkMode: networkMode,
                                                                   dataManager: dataManager)
@@ -89,23 +90,11 @@ extension AuthoriseViewController: AuthoriseModelDelegate {
   }
   
   func hideIndicator() {
-    authView.indicator.stopAnimating()
-    authView.indicator.hidesWhenStopped = true
-    authView.indicator.removeFromSuperview()
-    authView.dimmedView.removeFromSuperview()
+    authView.hideIndicator()
   }
   
   func showIndicator() {
-    view.addSubview(authView.dimmedView)
-    authView.dimmedView.snp.makeConstraints{
-      $0.edges.equalToSuperview()
-    }
-    
-    authView.dimmedView.addSubview(authView.indicator)
-    authView.indicator.startAnimating()
-    authView.indicator.snp.makeConstraints{
-      $0.center.equalToSuperview()
-    }
+    authView.showIndicator()
   }
 }
 // MARK: - Handle Keyboard

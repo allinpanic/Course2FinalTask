@@ -7,6 +7,7 @@
 //
 
 import UIKit
+// MARK: - UsersListViewController
 
 final class UsersListViewController: UIViewController {
 
@@ -21,9 +22,10 @@ final class UsersListViewController: UIViewController {
     return view
   }()
   
-  private var userList: [UserStruct]
+  private var userList: [UserData]
+  // MARK: - Inits
   
-  init(userList: [UserStruct], title: String, token: String, networkMode: NetworkMode) {
+  init(userList: [UserData], title: String, token: String, networkMode: NetworkMode) {
     self.userList = userList
     self.token = token
     self.networkMode = networkMode
@@ -73,10 +75,15 @@ extension UsersListViewController: UITableViewDataSource, UITableViewDelegate {
   
   func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
      let user = userList[indexPath.row]
-    let profileViewController = ProfileViewController(user: user, token: token)
-    let profileModel = ProfileModel(networkMode: networkMode, token: token)
-    profileModel.dataManager = dataManager
-    profileViewController.profileModel = profileModel
+    
+    let profileViewController = Builder.createProfileViewController(user: user,
+                                                                    dataManager: dataManager,
+                                                                    networkMode: networkMode,
+                                                                    token: token)
+//    let profileViewController = ProfileViewController(user: user, token: token)
+//    let profileModel = ProfileModel(networkMode: networkMode, token: token)
+//    profileModel.dataManager = dataManager
+//    profileViewController.profileModel = profileModel
     
       self.navigationController?.pushViewController(profileViewController, animated: true)
   }

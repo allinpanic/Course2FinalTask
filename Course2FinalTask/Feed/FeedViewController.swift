@@ -7,17 +7,22 @@
 //
 
 import UIKit
+// MARK: - FeedViewController
 
 final class FeedViewController: UIViewController {
-  //MARK: - Properties
+
   var networkMode: NetworkMode = .online
   var dataManager: CoreDataManager!
   var feedModel: FeedModel!
   
   private let token: String
-  private var feedView: FeedViewProtocol = FeedView()
+  private lazy var feedView: FeedViewProtocol = {
+    let view = FeedView()
+    view.feedTableView.dataSource = self    
+    return view
+  }()
   private let reuseIdentifier = "postCell"
-  private var posts: [PostStruct] = []
+  private var posts: [PostData] = []
   
   init(token: String) {
     self.token = token
@@ -27,7 +32,7 @@ final class FeedViewController: UIViewController {
   required init?(coder: NSCoder) {
     fatalError("init(coder:) has not been implemented")
   }
-  //MARK: - ViewDidLoad
+  //MARK: - View Life Cycle methods
   
   override func loadView() {
     super.loadView()
@@ -44,7 +49,6 @@ final class FeedViewController: UIViewController {
     showIndicator()
     getPosts()
   }
-//MARK: - ViewWillAppear
   
   override func viewWillAppear(_ animated: Bool) {
     super.viewWillAppear(animated)
@@ -67,8 +71,9 @@ extension FeedViewController: UITableViewDataSource {
       else { return UITableViewCell() }
     
     cell.networkMode = networkMode
-    cell.post = posts[indexPath.row]
     cell.index = indexPath.row
+    cell.post = posts[indexPath.row]
+//    cell.index = indexPath.row
     cell.delegate = self
     
     return cell
@@ -80,12 +85,14 @@ extension FeedViewController: FeedPostCellDelegate {
   func like(postID: String, index: Int) {
     feedModel.likePost(withPostID: postID) { [weak self] (post) in
       self?.posts[index] = post
+      self?.feedView.updatePost(post: post, atIndex: index)
     }
   }
   
   func dislike(postId: String, index: Int) {
     feedModel.unlikePost(withPostID: postId) { [weak self] (post) in
       self?.posts[index] = post
+      self?.feedView.updatePost(post: post, atIndex: index)
     }
   }
   
@@ -107,22 +114,14 @@ extension FeedViewController: FeedPostCellDelegate {
   
   func likesLabelTapped(postID: String, title: String) {
     feedModel.getLikes(withPostID: postID) { [weak self] (users) in
-//      guard let token = self?.token else {return}
       
       DispatchQueue.main.async {
         self?.navigateToUserList(userList: users, title: title)
-//        let userListController = UsersListViewController(userList: users, title: title, token: token, networkMode: networkMode)
-//        userListController.dataManager = dataManager
-//
-//        self?.navigationController?.pushViewController(UsersListViewController(userList: users,
-//                                                                               title: title,
-//                                                                               token: token, networkMode: self?.networkMode),
-//                                                       animated: true)
       }
     }
   }
   
-  func likeButtonPressed(post: PostStruct, index: Int) {
+  func likeButtonPressed(post: PostData, index: Int) {
     posts[index] = post
   }
   
@@ -145,40 +144,16 @@ extension FeedViewController {
     imageView.layer.add(animation, forKey: "opacity")
     imageView.layer.opacity = 0
   }
-  
-  
-  
-  
-  
-  
-  private func navigateToUserList(userList: [UserStruct], title: String) {
-    let userListController = UsersListViewController(userList: userList, title: title, token: token, networkMode: networkMode)
-    userListController.dataManager = dataManager
+
+  private func navigateToUserList(userList: [UserData], title: String) {
+    
+    let userListController = Builder.createUserListViewController(userList: userList,
+                                                                  dataManager: dataManager,
+                                                                  networkMode: networkMode,
+                                                                  token: token,
+                                                                  title: title)
     
     navigationController?.pushViewController(userListController, animated: true)
-  }
-}
-// MARK: - Activity Indicator
-
-extension FeedViewController {
-  func showIndicator() {
-    view.addSubview(feedView.dimmedView)
-    feedView.dimmedView.snp.makeConstraints{
-      $0.edges.equalToSuperview()
-    }
-    
-    feedView.dimmedView.addSubview(feedView.indicator)
-    feedView.indicator.startAnimating()
-    feedView.indicator.snp.makeConstraints{
-      $0.center.equalToSuperview()
-    }
-  }
-  
-  func hideIndicator() {
-    feedView.indicator.stopAnimating()
-    feedView.indicator.hidesWhenStopped = true
-    feedView.indicator.removeFromSuperview()
-    feedView.dimmedView.removeFromSuperview()
   }
 }
 // MARK: - Get Posts
@@ -216,19 +191,27 @@ extension FeedViewController {
 //    }
 //  }
 }
+// MARK: - FeedModelDelegate
 
 extension FeedViewController: FeedModelDelegate {
   func getError(error: NetworkError) {
     showAlert(error: error)
   }
 
-  func navigateToProfileVC(user: UserStruct) {
-    let profileViewController = ProfileViewController(user: user, token: token)
-    let profileModel = ProfileModel(networkMode: networkMode, token: token)
-    profileModel.dataManager = dataManager
-//    profileViewController.dataManager = dataManager
-    profileViewController.networkMode = networkMode
-    profileViewController.profileModel = profileModel
+  func navigateToProfileVC(user: UserData) {
+    let profileViewController = Builder.createProfileViewController(user: user,
+                                                                    dataManager: dataManager,
+                                                                    networkMode: networkMode,
+                                                                    token: token)
+
     self.navigationController?.pushViewController(profileViewController, animated: true)
+  }
+  
+  func showIndicator() {
+    feedView.showIndicator()
+  }
+  
+  func hideIndicator() {
+    feedView.hideIndicator()
   }
 }

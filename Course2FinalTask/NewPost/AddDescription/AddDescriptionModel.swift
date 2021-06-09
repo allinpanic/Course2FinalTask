@@ -7,17 +7,20 @@
 //
 
 import UIKit
+// MARK: - AddDescriptionModelDelegate
 
 protocol AddDescriptionModelDelegate: class {
   func showOfflineAlert()
   func getError(error: NetworkError)
   func navigateToFeed()
 }
+// MARK: - AddDescriptionModelProtocol
 
 protocol AddDescriptionModelProtocol: class {
   var delegate: AddDescriptionModelDelegate? { get set }
   func sharePost(image: UIImage, description: String)
 }
+// MARK: - AddDescriptionModel
 
 final class AddDescriptionModel: AddDescriptionModelProtocol {
   private var token: String
@@ -30,14 +33,12 @@ final class AddDescriptionModel: AddDescriptionModelProtocol {
     self.networkMode = networkMode
     self.token = token
   }
+  // MARK: SharePost
   
   func sharePost(image: UIImage, description: String) {
     switch networkMode {
     
     case .online:
-//      guard let postImage = filteredImageView.image,
-//            let text = descriptionTextField.text else {return}
-      
       guard let addPostRequest = NetworkManager.shared.newPostRequest(image: image,
                                                                       description: description,
                                                                       token: token) else {return}
@@ -50,8 +51,6 @@ final class AddDescriptionModel: AddDescriptionModelProtocol {
         case .success(_):
           DispatchQueue.main.async {
             self?.delegate?.navigateToFeed()
-//            self?.tabBarController?.selectedIndex = 0
-//            self?.navigationController?.popToRootViewController(animated: true)
           }
           
         case .failure(let error):

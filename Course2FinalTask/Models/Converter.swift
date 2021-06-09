@@ -9,7 +9,7 @@
 import Foundation
 
 final class Converter {
-  func convertToStruct(user: User) -> UserStruct? {
+  func convertToStruct(user: User) -> UserData? {
     guard let id = user.id,
           let avatarData = user.avatar,
           let userName = user.userName,
@@ -21,7 +21,7 @@ final class Converter {
     let followsCount = Int(user.followsCount)
     let followedCount = Int(user.followedByCount)
 
-    let userStruct = UserStruct(id: id,
+    let userStruct = UserData(id: id,
                                 username: userName,
                                 fullName: fullName,
                                 avatar: avatarString,
@@ -33,7 +33,7 @@ final class Converter {
     return userStruct
   }
   
-  func convertToStruct(post: Post) -> PostStruct? {
+  func convertToStruct(post: Post) -> PostData? {
     guard let id = post.id,
           let descript = post.descript,
           let createdTime = post.createdTime,
@@ -44,7 +44,7 @@ final class Converter {
     
     let currentUserLikesThisPost = post.currentUserLikesThisPost    
     
-    let postStruct = PostStruct(id: id,
+    let postStruct = PostData(id: id,
                                 description: descript,
                                 image: image,
                                 createdTime: createdTime,

@@ -53,7 +53,7 @@ final class NetworkManager {
   }
   // MARK: - Make POST Requests
   
-  func signinRequest(userName: String, password: String) -> URLRequest? {
+   private func signinRequest(userName: String, password: String) -> URLRequest? {
     
     guard let url = makeURL(path: "/signin") else {return nil}
     
@@ -189,9 +189,9 @@ final class NetworkManager {
     
     return result
   }
-  // MARK: - NEW FUNCTIONS
+  // MARK: - GetCurrentUser
   
-  func getCurrentUser(token: String, session: URLSession, completionHandler: @escaping (Result<UserStruct, NetworkError>) -> Void) {
+  func getCurrentUser(token: String, session: URLSession, completionHandler: @escaping (Result<UserData, NetworkError>) -> Void) {
     
     let currentUserRequest = NetworkManager.shared.currentUserRequest(token: token)
     performRequest(request: currentUserRequest,
@@ -201,7 +201,7 @@ final class NetworkManager {
       switch result {
         
       case .success(let data):
-        guard let currentUser = NetworkManager.shared.parseJSON(jsonData: data, toType: UserStruct.self) else {return}
+        guard let currentUser = NetworkManager.shared.parseJSON(jsonData: data, toType: UserData.self) else {return}
         completionHandler(.success(currentUser))
         
       case .failure(let error):
@@ -209,8 +209,9 @@ final class NetworkManager {
       }
     }
   }
+  // MARK: - SignIn
   
-  func signIn(userName: String, password: String, session: URLSession, completionHandler: @escaping (Result<UserStruct, NetworkError>, String?) -> Void) {
+  func signIn(userName: String, password: String, session: URLSession, completionHandler: @escaping (Result<UserData, NetworkError>, String?) -> Void) {
     
     guard let signInRequest = NetworkManager.shared.signinRequest(userName: userName,
                                                                   password: password) else {return}

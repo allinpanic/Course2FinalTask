@@ -7,6 +7,7 @@
 //
 
 import UIKit
+// MARK: - FilterImageViewProtocol
 
 protocol FilterImageViewProtocol: UIView {
   var imageViewToFilter: UIImageView { get set }
@@ -15,7 +16,11 @@ protocol FilterImageViewProtocol: UIView {
   var image: UIImage! { get set }
   var dimmedView: UIView { get }
   var indicator: UIActivityIndicatorView { get }
+  
+  func showIndicator()
+  func hideIndicator()
 }
+// MARK: - FilterImageView
 
 final class FilterImageView: UIView, FilterImageViewProtocol {
   var reuseIdentifier = "filterThumbnail"
@@ -28,7 +33,6 @@ final class FilterImageView: UIView, FilterImageViewProtocol {
   
   lazy var imageViewToFilter: UIImageView = {
     let imageView = UIImageView()
-//    imageView.image = selectedImage
     imageView.contentMode = .scaleAspectFill
     return imageView
   }()
@@ -40,8 +44,6 @@ final class FilterImageView: UIView, FilterImageViewProtocol {
     let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
     collectionView.backgroundColor = .white
     collectionView.register(FilteredThumbnailCell.self, forCellWithReuseIdentifier: reuseIdentifier)
-//    collectionView.dataSource = self
-//    collectionView.delegate = self
     return collectionView
   }()
   
@@ -57,6 +59,7 @@ final class FilterImageView: UIView, FilterImageViewProtocol {
     view.alpha = 0.7
     return view
   }()
+  // MARK: - Inits
   
   override init(frame: CGRect) {
     super.init(frame: frame)
@@ -66,19 +69,12 @@ final class FilterImageView: UIView, FilterImageViewProtocol {
   required init?(coder: NSCoder) {
     fatalError("init(coder:) has not been implemented")
   }
-  
-  
-  
-  
+  // MARK: - SetupLayout
+
   private func setupLayout() {
     backgroundColor = .white
     addSubview(imageViewToFilter)
     addSubview(filtersPreviewCollectionView)
-    
-//    self.navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Next",
-//                                                             style: .plain,
-//                                                             target: self,
-//                                                             action: #selector(showAddDescriptionToPost))
     
     imageViewToFilter.snp.makeConstraints{
       $0.top.leading.trailing.equalTo(safeAreaLayoutGuide)
@@ -89,5 +85,25 @@ final class FilterImageView: UIView, FilterImageViewProtocol {
       $0.leading.trailing.equalToSuperview()
       $0.height.equalTo(120)
     }
+  }
+  
+  func showIndicator() {
+    addSubview(dimmedView)
+    dimmedView.snp.makeConstraints{
+      $0.edges.equalToSuperview()
+    }
+    
+    dimmedView.addSubview(indicator)
+    indicator.startAnimating()
+    indicator.snp.makeConstraints{
+      $0.center.equalToSuperview()
+    }
+  }
+  
+  func hideIndicator() {
+    indicator.stopAnimating()
+    indicator.hidesWhenStopped = true
+    indicator.removeFromSuperview()
+    dimmedView.removeFromSuperview()
   }
 }

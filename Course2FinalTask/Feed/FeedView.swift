@@ -8,20 +8,26 @@
 
 import UIKit
 
-protocol FeedViewDelegate: class, UITableViewDelegate, UITableViewDataSource {
-  
-}
+//protocol FeedViewDelegate: class, UITableViewDelegate, UITableViewDataSource {
+//
+//}
+// MARK: - FeedViewProtocol
 
 protocol FeedViewProtocol: UIView {
   var feedTableView: UITableView { get set }
   var indicator: UIActivityIndicatorView { get }
   var dimmedView: UIView { get }
-  var delegate: FeedViewDelegate? { get set }
+//  var delegate: FeedViewDelegate? { get set }
   func updateLikesCount(likesCount: Int, index: Int)
+  func updatePost(post: PostData, atIndex: Int)
+  
+  func showIndicator()
+  func hideIndicator()
 }
+// MARK: - FeedView
 
 final class FeedView: UIView, FeedViewProtocol {
-  weak var delegate: FeedViewDelegate?
+//  weak var delegate: FeedViewDelegate?
   private let reuseIdentifier = "postCell"
   
   lazy var feedTableView: UITableView = {
@@ -46,7 +52,6 @@ final class FeedView: UIView, FeedViewProtocol {
     return view
   }()
   
-  
   override init(frame: CGRect) {
     super.init(frame: frame)
     setupLayout()
@@ -55,9 +60,7 @@ final class FeedView: UIView, FeedViewProtocol {
   required init?(coder: NSCoder) {
     fatalError("init(coder:) has not been implemented")
   }
-  
-  
-  
+
   private func setupLayout() {
     addSubview(feedTableView)
     
@@ -72,4 +75,29 @@ final class FeedView: UIView, FeedViewProtocol {
     cell.likesCount = likesCount
   }
   
+  func updatePost(post: PostData, atIndex index: Int) {
+    let indexPath = IndexPath(row: index, section: 0)
+    guard let cell = feedTableView.cellForRow(at: indexPath) as? FeedPostCell else {return}
+    cell.post = post
+  }
+  
+  func showIndicator() {
+    addSubview(dimmedView)
+    dimmedView.snp.makeConstraints{
+      $0.edges.equalToSuperview()
+    }
+    
+    dimmedView.addSubview(indicator)
+    indicator.startAnimating()
+    indicator.snp.makeConstraints{
+      $0.center.equalToSuperview()
+    }
+  }
+  
+  func hideIndicator() {
+    indicator.stopAnimating()
+    indicator.hidesWhenStopped = true
+    indicator.removeFromSuperview()
+    dimmedView.removeFromSuperview()
+  }
 }
