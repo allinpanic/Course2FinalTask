@@ -14,12 +14,11 @@ final class UsersListViewController: UIViewController {
   private var networkMode: NetworkMode
   var dataManager: CoreDataManager!
   
-  private lazy var usersTableView: UITableView = {
-    let tableView = UITableView()
-    tableView.register(UserTableViewCell.self, forCellReuseIdentifier: "userCell")
-    tableView.dataSource = self
-    tableView.delegate = self
-    return tableView
+  lazy var userListView: UserListViewProtocol = {
+    let view = UserListView()
+    view.usersTableView.delegate = self
+    view.usersTableView.dataSource = self
+    return view
   }()
   
   private var userList: [UserStruct]
@@ -36,27 +35,19 @@ final class UsersListViewController: UIViewController {
     fatalError("init(coder:) has not been implemented")
   }
   
+  override func loadView() {
+    super.loadView()
+    view = userListView
+  }
+  
   override func viewDidLoad() {
     super.viewDidLoad()
-    setupLayout()
   }
   
   override func viewWillAppear(_ animated: Bool) {
     super.viewWillAppear(animated)
     
-    if let indexPath = usersTableView.indexPathForSelectedRow {
-      usersTableView.deselectRow(at: indexPath , animated: true)
-    }
-  }
-}
-
-extension UsersListViewController {
-  private func setupLayout() {
-    view.addSubview(usersTableView)
-    
-    usersTableView.snp.makeConstraints{
-      $0.edges.equalToSuperview()
-    }
+    userListView.deselectCurrentRow()
   }
 }
 

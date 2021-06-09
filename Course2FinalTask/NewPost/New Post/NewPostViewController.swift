@@ -12,18 +12,13 @@ final class NewPostViewController: UIViewController {
   var networkMode: NetworkMode = .online
   
   private var minImages: [UIImage?] = []
-  private let reusableCellID = "smallImageCell"
   private var token: String
   
-  private lazy var imagesCollectionView: UICollectionView = {
-    let layout = UICollectionViewFlowLayout()
-    layout.minimumInteritemSpacing = 0
-    layout.minimumLineSpacing = 0
-    let collectionView = UICollectionView(frame: .zero , collectionViewLayout: layout)
-    collectionView.backgroundColor = .white
-    collectionView.register(NewImageThumbnailCell.self, forCellWithReuseIdentifier: reusableCellID)
-    collectionView.isScrollEnabled = true
-    return collectionView
+  private lazy var newPostView: NewPostViewProtocol = {
+    let view = NewPostView()
+    view.imagesCollectionView.delegate = self
+    view.imagesCollectionView.dataSource = self
+    return view
   }()
   
   init(token: String) {
@@ -35,27 +30,18 @@ final class NewPostViewController: UIViewController {
     fatalError("init(coder:) has not been implemented")
   }
   
+  override func loadView() {
+    super.loadView()
+    
+    view = newPostView
+  }
+  
   override func viewDidLoad() {
     super.viewDidLoad()
     
-    setupLayout()
-    
-    imagesCollectionView.dataSource = self
-    imagesCollectionView.delegate = self
+    self.navigationItem.title = "New Post"
     
     minImages = [UIImage(named: "new1"), UIImage(named: "new2"), UIImage(named: "new3" ), UIImage(named: "new4"), UIImage(named: "new5"), UIImage(named: "new6"), UIImage(named: "new7"), UIImage(named: "new8")]
-  }
-}
-
-extension NewPostViewController {
-  private func setupLayout() {
-    self.navigationItem.title = "New Post"
-    view.backgroundColor = .white
-    view.addSubview(imagesCollectionView)
-    
-    imagesCollectionView.snp.makeConstraints{
-      $0.edges.equalToSuperview()
-    }
   }
 }
 //MARK: - CollectionView DataSource Delegate
@@ -66,7 +52,7 @@ extension NewPostViewController: UICollectionViewDataSource, UICollectionViewDel
   }
   
   func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-    guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: reusableCellID, for: indexPath) as? NewImageThumbnailCell else {return UICollectionViewCell()}
+    guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: newPostView.reusableCellID, for: indexPath) as? NewImageThumbnailCell else {return UICollectionViewCell()}
     cell.imageView.image = minImages[indexPath.row]
     return cell
   }
@@ -78,8 +64,10 @@ extension NewPostViewController: UICollectionViewDataSource, UICollectionViewDel
   func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
     if let image = minImages[indexPath.row] {
       let filterImageViewController = FilterImageViewController(image: image, index: indexPath.row)
+      let filterImageModel = FilterImageModel()
       filterImageViewController.token = token
       filterImageViewController.networkMode = networkMode
+      filterImageViewController.filterImageModel = filterImageModel
       self.navigationController?.pushViewController(filterImageViewController, animated: true)
     }
   }

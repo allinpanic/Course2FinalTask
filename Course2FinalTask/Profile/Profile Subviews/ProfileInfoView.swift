@@ -11,10 +11,8 @@ import UIKit
 protocol ProfileInfoViewDelegate: UIViewController {
   func followersTapped(userID: String, title: String)
   func followingTapped(userID: String, title: String)
- // func followingTapped(userList: [UserStruct], title: String)
   func showIndicator()
   func hideIndicator()
-  //func configureFollowButton()
   func followButtonTapped(user: UserStruct)
 }
 
