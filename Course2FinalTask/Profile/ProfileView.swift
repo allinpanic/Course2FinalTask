@@ -8,20 +8,27 @@
 
 import UIKit
 
-protocol ProfileViewDelegate: AnyObject, ProfileInfoViewDelegate, UICollectionViewDataSource, UICollectionViewDelegate {
-  <#requirements#>
-}
-
-protocol ProfileViewProtocol: class {
+protocol ProfileViewProtocol: UIView {
   var user: UserStruct! { get set }
-  var delegate: ProfileViewDelegate! { get set }
+  var indicator: UIActivityIndicatorView { get }
+  var dimmedView: UIView { get }
+  var userImagesCollectionView: UICollectionView { get set }
+  var reuseIdentifier: String { get }
+  func showFollowButton()
+  func hideFollowButton()
+  func updateProfileInfoView(user: UserStruct, title: String)
 }
 
 final class ProfileView: UIView, ProfileViewProtocol {
-  var user: UserStruct!
-  weak var delegate: ProfileViewDelegate!
+  var user: UserStruct! {
+    didSet {
+      profileInfoView.user = user
+      profileInfoView.fillProfileInfo(networkMode: networkMode) { (_) in }
+    }
+  }
   
-  private var reuseIdentifier = "imageCell"
+  var networkMode: NetworkMode = .online  
+  var reuseIdentifier = "imageCell"
   
   private lazy var profileScrollView: UIScrollView = {
     let scrollView = UIScrollView()
@@ -30,7 +37,7 @@ final class ProfileView: UIView, ProfileViewProtocol {
     return scrollView
   }()
   
-  private lazy var userImagesCollectionView: UICollectionView = {
+  lazy var userImagesCollectionView: UICollectionView = {
     let layout = UICollectionViewFlowLayout()
     layout.minimumInteritemSpacing = 0
     layout.minimumLineSpacing = 0
@@ -38,26 +45,22 @@ final class ProfileView: UIView, ProfileViewProtocol {
     collectionView.backgroundColor = .white
     collectionView.register(ImageCollectionViewCell.self, forCellWithReuseIdentifier: reuseIdentifier)
     collectionView.isScrollEnabled = false
-    collectionView.delegate = self.delegate
-    collectionView.dataSource = self.delegate
     return collectionView
   }()
   
-  private lazy var profileInfoView: ProfileInfoView = {
+  lazy var profileInfoView: ProfileInfoView = {
     let profileInfo = ProfileInfoView()
     profileInfo.backgroundColor = .white
-    profileInfo.delegate = self.delegate
-//    profileInfo.networkMode = self.networkMode
     return profileInfo
   }()
   
-  private var indicator: UIActivityIndicatorView = {
+  var indicator: UIActivityIndicatorView = {
     let indicator = UIActivityIndicatorView()
     indicator.style = .white
     return indicator
   }()
   
-  private var dimmedView: UIView = {
+  var dimmedView: UIView = {
     let view = UIView()
     view.backgroundColor = .black
     view.alpha = 0.7
@@ -73,25 +76,10 @@ final class ProfileView: UIView, ProfileViewProtocol {
     fatalError("init(coder:) has not been implemented")
   }
   
-  
-  
-  
-  
   private func setupLayout() {
     addSubview(profileScrollView)
     profileScrollView.addSubview(profileInfoView)
     profileScrollView.addSubview(userImagesCollectionView)
-    
-//    self.navigationItem.title = user?.username
-//
-//    showIndicator()
-//    getUserPosts()
-    
-    profileInfoView.user = user
-//    profileInfoView.token = token
-    profileInfoView.fillProfileInfo{ _ in}
-    
-    configureLogOutButton()
     
     profileScrollView.snp.makeConstraints{
       $0.edges.equalToSuperview()
@@ -107,11 +95,21 @@ final class ProfileView: UIView, ProfileViewProtocol {
       $0.top.equalTo(profileInfoView.snp.bottom)
       $0.leading.trailing.equalToSuperview()
       $0.bottom.equalToSuperview()
-      $0.height.equalTo(bounds.height + 100)
+      $0.height.equalTo(UIScreen.main.bounds.height + 100)
     }
   }
   
-  private func configureLogOutButton() {
-    
+  func showFollowButton() {
+    profileInfoView.followButton.isHidden = false
+  }
+  
+  func hideFollowButton() {
+    profileInfoView.followButton.isHidden = true
+  }
+  
+  func updateProfileInfoView(user: UserStruct, title: String) {
+    profileInfoView.user = user
+    profileInfoView.followersLabel.text = "Followers: \(user.followedByCount)"
+    profileInfoView.followButton.setTitle("\(title)", for: .normal)
   }
 }

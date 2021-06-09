@@ -107,13 +107,17 @@ extension FeedViewController: FeedPostCellDelegate {
   
   func likesLabelTapped(postID: String, title: String) {
     feedModel.getLikes(withPostID: postID) { [weak self] (users) in
-      guard let token = self?.token else {return}
+//      guard let token = self?.token else {return}
       
       DispatchQueue.main.async {
-        self?.navigationController?.pushViewController(UsersListViewController(userList: users,
-                                                                               title: title,
-                                                                               token: token),
-                                                       animated: true)
+        self?.navigateToUserList(userList: users, title: title)
+//        let userListController = UsersListViewController(userList: users, title: title, token: token, networkMode: networkMode)
+//        userListController.dataManager = dataManager
+//
+//        self?.navigationController?.pushViewController(UsersListViewController(userList: users,
+//                                                                               title: title,
+//                                                                               token: token, networkMode: self?.networkMode),
+//                                                       animated: true)
       }
     }
   }
@@ -140,6 +144,18 @@ extension FeedViewController {
                                  CAMediaTimingFunction(name: .easeOut)]
     imageView.layer.add(animation, forKey: "opacity")
     imageView.layer.opacity = 0
+  }
+  
+  
+  
+  
+  
+  
+  private func navigateToUserList(userList: [UserStruct], title: String) {
+    let userListController = UsersListViewController(userList: userList, title: title, token: token, networkMode: networkMode)
+    userListController.dataManager = dataManager
+    
+    navigationController?.pushViewController(userListController, animated: true)
   }
 }
 // MARK: - Activity Indicator
@@ -208,8 +224,11 @@ extension FeedViewController: FeedModelDelegate {
 
   func navigateToProfileVC(user: UserStruct) {
     let profileViewController = ProfileViewController(user: user, token: token)
-    profileViewController.dataManager = dataManager
+    let profileModel = ProfileModel(networkMode: networkMode, token: token)
+    profileModel.dataManager = dataManager
+//    profileViewController.dataManager = dataManager
     profileViewController.networkMode = networkMode
+    profileViewController.profileModel = profileModel
     self.navigationController?.pushViewController(profileViewController, animated: true)
   }
 }

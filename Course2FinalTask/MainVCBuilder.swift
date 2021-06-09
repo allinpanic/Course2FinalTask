@@ -21,11 +21,16 @@ public final class MainVCBuilder: Builder {
     feedModel.dataManager = dataManager
     
     let profileViewController = ProfileViewController(user: nil, token: token)
+    let profileModel = ProfileModel(networkMode: networkMode, token: token)
+    profileModel.dataManager = dataManager
+    
     let newPostViewController = NewPostViewController(token: token)
     
     profileViewController.user = currentUser
     profileViewController.networkMode = networkMode
-    profileViewController.dataManager = dataManager
+    //profileViewController.dataManager = dataManager
+    profileViewController.profileModel = profileModel
+    
     
     feedViewController.networkMode = networkMode
     feedViewController.dataManager = dataManager

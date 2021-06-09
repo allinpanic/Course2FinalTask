@@ -9,17 +9,18 @@
 import UIKit
 
 protocol ProfileInfoViewDelegate: UIViewController {
-  func followersTapped(userList: [UserStruct], title: String)
-  func followingTapped(userList: [UserStruct], title: String)
+  func followersTapped(userID: String, title: String)
+  func followingTapped(userID: String, title: String)
+ // func followingTapped(userList: [UserStruct], title: String)
   func showIndicator()
   func hideIndicator()
+  //func configureFollowButton()
+  func followButtonTapped(user: UserStruct)
 }
 
 final class ProfileInfoView: UIView {
   weak var delegate: ProfileInfoViewDelegate?
   var user: UserStruct?
-  var token: String?
-  var networkMode: NetworkMode = .online
 //MARK: - Private properties
   
   private let session = URLSession.shared
@@ -38,7 +39,7 @@ final class ProfileInfoView: UIView {
     return label
   }()
   
-  private lazy var followersLabel: UILabel = {
+  lazy var followersLabel: UILabel = {
     let label = UILabel()
     label.font = .systemFont(ofSize: 14, weight: .semibold)
     label.textColor = .black
@@ -47,7 +48,7 @@ final class ProfileInfoView: UIView {
     return label
   }()
   
-  private lazy var followingLabel: UILabel = {
+  lazy var followingLabel: UILabel = {
     let label = UILabel()
     label.font = .systemFont(ofSize: 14, weight: .semibold)
     label.textColor = .black
@@ -56,7 +57,7 @@ final class ProfileInfoView: UIView {
     return label
   }()
   
-  private lazy var followButton: FollowButton = {
+  lazy var followButton: FollowButton = {
     let button = FollowButton()
     button.backgroundColor = UIColor(named: "ButtonBlue")
     button.titleLabel?.textColor = .white
@@ -128,7 +129,7 @@ extension ProfileInfoView {
     }
   }
   
-  func fillProfileInfo(completionHandler: @escaping (UIImage?) -> Void) {
+  func fillProfileInfo(networkMode: NetworkMode, completionHandler: @escaping (UIImage?) -> Void) {
     if let user = user {
       switch networkMode {
       
@@ -159,188 +160,27 @@ extension ProfileInfoView {
         followButton.sizeToFit()
       }
     }
-    configureFollowButton()
-  }
-  
-  private func configureFollowButton() {
-    guard let token = token else {return}
-    
-    switch networkMode {
-    
-    case .online:
-      let currentUserRequest = NetworkManager.shared.currentUserRequest(token: token)
-      
-      NetworkManager.shared.performRequest(request: currentUserRequest,
-                                           session: session)
-      { [weak self] (result) in
-        switch result {
-          
-        case .success(let data):
-          guard let currentUser = NetworkManager.shared.parseJSON(jsonData: data,
-                                                                  toType: UserStruct.self) else {return}
-          
-          if self?.user?.id != currentUser.id  {
-            DispatchQueue.main.async {
-              self?.followButton.isHidden = false
-            }
-          }
-          
-        case .failure(let error):
-          DispatchQueue.main.async {
-            self?.delegate?.showAlert(error: error)
-          }
-        }
-      }
-      
-    case .offline:
-      followButton.isHidden = true
-    }
   }
 }
 //MARK: - Gesture Handlers
 
 extension ProfileInfoView {
   @objc private func followersLabelTapped (_ recognizer: UITapGestureRecognizer) {
-    switch networkMode {
+    guard let user = user else {return}
     
-    case .online:
-      delegate?.showIndicator()
-      
-      if let userID = user?.id {
-        guard let token = token else {return}
-        
-        let followersRequest = NetworkManager.shared.getFollowingUsersForUserRequest(withUserID: userID,
-                                                                                     token: token)
-        NetworkManager.shared.performRequest(request: followersRequest,
-                                             session: session) {
-          [weak self](result) in
-          switch result {
-            
-          case .success(let data):
-            guard let usersArray = NetworkManager.shared.parseJSON(jsonData: data,
-                                                                   toType: [UserStruct].self) else {return}
-            DispatchQueue.main.async{
-              self?.delegate?.hideIndicator()
-              self?.delegate?.followersTapped(userList: usersArray, title: "Followers")
-            }
-            
-          case .failure(let error):
-            DispatchQueue.main.async {
-              self?.delegate?.showAlert(error: error)
-            }
-          }
-        }
-      }
-      
-    case .offline:
-      delegate?.showOfflineAlert()
-    }
+    delegate?.followersTapped(userID: user.id, title: "Followers")
   }
   
   @objc private func followinLabelTapped (_ recognizer: UITapGestureRecognizer) {
-    switch networkMode {
+    guard let user = user else {return}
     
-    case .online:
-      delegate?.showIndicator()
-      
-      if let userID = user?.id {
-        guard let token = token else {return}
-        
-        let followersRequest = NetworkManager.shared.getUsersFollowedByUserRequest(withUserID: userID,
-                                                                                   token: token)
-        NetworkManager.shared.performRequest(request: followersRequest,
-                                             session: session)
-        { [weak self](result) in
-          switch result {
-            
-          case .success(let data):
-            guard let usersArray = NetworkManager.shared.parseJSON(jsonData: data,
-                                                                   toType: [UserStruct].self) else {return}
-            
-            DispatchQueue.main.async{
-              self?.delegate?.hideIndicator()
-              self?.delegate?.followingTapped(userList: usersArray, title: "Following")
-            }
-            
-          case .failure(let error):
-            DispatchQueue.main.async {
-              self?.delegate?.showAlert(error: error)
-            }
-          }
-        }
-      }
-      
-    case .offline:
-      delegate?.showOfflineAlert()
-    }
+    delegate?.followingTapped(userID: user.id, title: "Following")
   }
   
   @objc private func followButtonTapped () {
-    switch networkMode {
+    guard let user = user else {return}
     
-    case .online:
-      if let user = user {
-        if user.currentUserFollowsThisUser {
-          guard let token = token else {return}
-          
-          let unfollowRequest = NetworkManager.shared.unfollowUserRequest(withUserID: user.id,
-                                                                          token: token)
-          NetworkManager.shared.performRequest(request: unfollowRequest,
-                                               session: session)
-          { [weak self] (result) in
-            switch result {
-              
-            case .success(let data):
-              guard let user = NetworkManager.shared.parseJSON(jsonData: data,
-                                                               toType: UserStruct.self) else {return}
-              
-              self?.user = user
-              
-              DispatchQueue.main.async {
-                self?.followersLabel.text = "Followers: \(user.followedByCount)"
-                self?.followButton.setTitle("Follow", for: .normal)
-              }
-              
-            case .failure(let error):
-              DispatchQueue.main.async {
-                self?.delegate?.showAlert(error: error)
-              }
-            }
-          }
-        } else {
-          guard let token = token else {return}
-          
-          let followRequest = NetworkManager.shared.followUserRequest(withUserID: user.id,
-                                                                      token: token)
-          NetworkManager.shared.performRequest(request: followRequest,
-                                               session: session)
-          { [weak self] (result) in            
-            switch result {
-            
-            case .success(let data):
-              guard let user = NetworkManager.shared.parseJSON(jsonData: data,
-                                                               toType: UserStruct.self) else {
-                                                                self?.delegate?.showAlert()
-                                                                return}
-              self?.user = user
-              
-              DispatchQueue.main.async {
-                self?.followersLabel.text = "Followers: \(user.followedByCount)"
-                self?.followButton.setTitle("Unfollow", for: .normal)
-              }
-              
-            case .failure(let error):
-              DispatchQueue.main.async {
-                self?.delegate?.showAlert(error: error)
-              }
-            }
-          }
-        }
-      }
-      
-    case .offline:
-      delegate?.showOfflineAlert()    
-    }
+    delegate?.followButtonTapped(user: user)
   }
 }
 

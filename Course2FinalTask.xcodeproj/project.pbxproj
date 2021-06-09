@@ -34,6 +34,10 @@
 		E968D8E425C044F00034CDF3 /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = E968D8E325C044F00034CDF3 /* User.swift */; };
 		E97AFC652613900900558280 /* Converter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E97AFC642613900900558280 /* Converter.swift */; };
 		E97D7BFD241C0EB5007509DC /* UserTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = E97D7BFC241C0EB5007509DC /* UserTableViewCell.swift */; };
+		E986036B266E06A700B3141E /* FeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E986036A266E06A700B3141E /* FeedView.swift */; };
+		E986036D266E130C00B3141E /* FeedModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E986036C266E130C00B3141E /* FeedModel.swift */; };
+		E986036F266FC3E000B3141E /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E986036E266FC3E000B3141E /* ProfileView.swift */; };
+		E9860371266FC3EF00B3141E /* ProfileModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9860370266FC3EF00B3141E /* ProfileModel.swift */; };
 		E9A8772924124B9C0004F142 /* FeedViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9A8772824124B9C0004F142 /* FeedViewController.swift */; };
 		E9A8772B24124D200004F142 /* FeedPostCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9A8772A24124D200004F142 /* FeedPostCell.swift */; };
 		E9AD5D77266BBDD600D170D8 /* MainVCBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9AD5D76266BBDD600D170D8 /* MainVCBuilder.swift */; };
@@ -88,6 +92,10 @@
 		E968D8E325C044F00034CDF3 /* User.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = User.swift; sourceTree = "<group>"; };
 		E97AFC642613900900558280 /* Converter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Converter.swift; sourceTree = "<group>"; };
 		E97D7BFC241C0EB5007509DC /* UserTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserTableViewCell.swift; sourceTree = "<group>"; };
+		E986036A266E06A700B3141E /* FeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedView.swift; sourceTree = "<group>"; };
+		E986036C266E130C00B3141E /* FeedModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedModel.swift; sourceTree = "<group>"; };
+		E986036E266FC3E000B3141E /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
+		E9860370266FC3EF00B3141E /* ProfileModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileModel.swift; sourceTree = "<group>"; };
 		E9A8772824124B9C0004F142 /* FeedViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedViewController.swift; sourceTree = "<group>"; };
 		E9A8772A24124D200004F142 /* FeedPostCell.swift */ = {isa = PBXFileReference; indentWidth = 2; lastKnownFileType = sourcecode.swift; path = FeedPostCell.swift; sourceTree = "<group>"; };
 		E9AD5D76266BBDD600D170D8 /* MainVCBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainVCBuilder.swift; sourceTree = "<group>"; };
@@ -203,6 +211,8 @@
 			isa = PBXGroup;
 			children = (
 				E9A8772824124B9C0004F142 /* FeedViewController.swift */,
+				E986036A266E06A700B3141E /* FeedView.swift */,
+				E986036C266E130C00B3141E /* FeedModel.swift */,
 				E974E1DC245AE46500B0B3BD /* Feed Subviews */,
 			);
 			path = Feed;
@@ -212,6 +222,8 @@
 			isa = PBXGroup;
 			children = (
 				E92B36912413E75A003633DD /* ProfileViewController.swift */,
+				E986036E266FC3E000B3141E /* ProfileView.swift */,
+				E9860370266FC3EF00B3141E /* ProfileModel.swift */,
 				E9D78A5E2487DB4D00FCA5D1 /* Profile Subviews */,
 			);
 			path = Profile;
@@ -421,6 +433,7 @@
 				E94C0B21246B21CE00AB7116 /* NewImageThumbnailCell.swift in Sources */,
 				E927099C260F347F00773803 /* NetworkMode.swift in Sources */,
 				E92B36982413F7F0003633DD /* ImageCollectionViewCell.swift in Sources */,
+				E986036F266FC3E000B3141E /* ProfileView.swift in Sources */,
 				E94209BF25C31EBD0002E2C3 /* Token.swift in Sources */,
 				E94C0B25246C59D700AB7116 /* FilteredThumbnailCell.swift in Sources */,
 				E9D78A602487DBC500FCA5D1 /* FollowButton.swift in Sources */,
@@ -428,15 +441,18 @@
 				E9A8772924124B9C0004F142 /* FeedViewController.swift in Sources */,
 				E92B368A2412879C003633DD /* PostHeader.swift in Sources */,
 				E94C0B27246C68EA00AB7116 /* AddDescriptionViewController.swift in Sources */,
+				E986036D266E130C00B3141E /* FeedModel.swift in Sources */,
 				E94C0B23246C2BF300AB7116 /* FilterImageViewController.swift in Sources */,
 				E9AD5D7B266D241C00D170D8 /* AuthoriseModel.swift in Sources */,
 				E9DEF4C0241BD5C200D8E9B3 /* UsersListViewController.swift in Sources */,
 				E92B368C24128ABB003633DD /* PostFooterView.swift in Sources */,
 				E92B36942413EA79003633DD /* ProfileInfoView.swift in Sources */,
 				E927099F260F480000773803 /* UserPost.xcdatamodeld in Sources */,
+				E9860371266FC3EF00B3141E /* ProfileModel.swift in Sources */,
 				E97D7BFD241C0EB5007509DC /* UserTableViewCell.swift in Sources */,
 				E9AD5D77266BBDD600D170D8 /* MainVCBuilder.swift in Sources */,
 				74B79258202B3254006BCB41 /* AppDelegate.swift in Sources */,
+				E986036B266E06A700B3141E /* FeedView.swift in Sources */,
 				E968D8E425C044F00034CDF3 /* User.swift in Sources */,
 				E94209BB25C2F4C90002E2C3 /* Post.swift in Sources */,
 				E9AD5D79266CC40000D170D8 /* AuthoriseView.swift in Sources */,

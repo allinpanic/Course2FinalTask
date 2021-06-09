@@ -12,12 +12,18 @@ final class ProfileViewController: UIViewController {
 
   var user: UserStruct?
   var networkMode: NetworkMode = .online
-  var dataManager: CoreDataManager!
+  //var dataManager: CoreDataManager!
+  var profileModel: ProfileModelProtocol!
   
   
-  private var profileView: ProfileViewProtocol = {
+  private lazy var profileView: ProfileViewProtocol = {
     let view = ProfileView()
-    view.delegate = self
+    view.networkMode = networkMode
+    view.user = user
+    
+    view.userImagesCollectionView.delegate = self
+    view.userImagesCollectionView.dataSource = self
+    view.profileInfoView.delegate = self
     return view
   }()
   
@@ -31,48 +37,8 @@ final class ProfileViewController: UIViewController {
   private var userPosts: [PostStruct]?
   private var userAvatar: UIImage?
   
-  private let keychainManager = KeychainManager()
-  
-//  private var reuseIdentifier = "imageCell"
-//
-//  private lazy var profileScrollView: UIScrollView = {
-//    let scrollView = UIScrollView()
-//    scrollView.backgroundColor = .white
-//    scrollView.isScrollEnabled = true
-//    return scrollView
-//  }()
-//
-//  private lazy var userImagesCollectionView: UICollectionView = {
-//    let layout = UICollectionViewFlowLayout()
-//    layout.minimumInteritemSpacing = 0
-//    layout.minimumLineSpacing = 0
-//    let collectionView = UICollectionView(frame: .zero , collectionViewLayout: layout)
-//    collectionView.backgroundColor = .white
-//    collectionView.register(ImageCollectionViewCell.self, forCellWithReuseIdentifier: reuseIdentifier)
-//    collectionView.isScrollEnabled = false
-//    return collectionView
-//  }()
-  
-//  private lazy var profileInfoView: ProfileInfoView = {
-//    let profileInfo = ProfileInfoView()
-//    profileInfo.backgroundColor = .white
-//    profileInfo.delegate = self
-//    profileInfo.networkMode = self.networkMode
-//    return profileInfo
-//  }()
-//  
-//  private var indicator: UIActivityIndicatorView = {
-//    let indicator = UIActivityIndicatorView()
-//    indicator.style = .white
-//    return indicator
-//  }()
-//  
-//  private var dimmedView: UIView = {
-//    let view = UIView()
-//    view.backgroundColor = .black
-//    view.alpha = 0.7
-//    return view
-//  }()
+//  private let keychainManager = KeychainManager()
+
 // MARK: - Inits
   
   init (user: UserStruct?, token: String) {
@@ -86,12 +52,23 @@ final class ProfileViewController: UIViewController {
   }
 //MARK: - ViewDidLoad
   
+  override func loadView() {
+    view = profileView
+  }
+  
   override func viewDidLoad() {
     super.viewDidLoad()
     
-    userImagesCollectionView.dataSource = self
-    userImagesCollectionView.delegate = self
-    setupLayout()
+    self.navigationItem.title = user?.username
+    
+    profileModel.delegate = self
+    
+    showIndicator()
+    getUserPosts()
+    
+    guard let user = user else {return}
+    configureLogOutButton(userID: user.id)
+    configureFollowButton(user: user)
   }
   
   override func viewWillAppear(_ animated: Bool) {
@@ -101,53 +78,8 @@ final class ProfileViewController: UIViewController {
       showIndicator()
       getUserPosts()
     }
-    
-    profileInfoView.user = user
-    profileInfoView.token = token
-    profileInfoView.networkMode = networkMode
-    profileInfoView.fillProfileInfo(completionHandler: {[weak self] avatar in
-      self?.userAvatar = avatar
-    })
   }
 }
-//MARK: - Layout
-
-extension ProfileViewController {
-  private func setupLayout() {
-    view.addSubview(profileScrollView)
-    profileScrollView.addSubview(profileInfoView)
-    profileScrollView.addSubview(userImagesCollectionView)
-    
-    self.navigationItem.title = user?.username
-    
-    showIndicator()
-    getUserPosts()
-    
-    profileInfoView.user = user
-    profileInfoView.token = token
-    profileInfoView.fillProfileInfo{ _ in}
-    
-    configureLogOutButton()
-    
-    profileScrollView.snp.makeConstraints{
-      $0.edges.equalToSuperview()
-    }
-    
-    profileInfoView.snp.makeConstraints{
-      $0.leading.trailing.top.equalToSuperview()
-      $0.width.equalToSuperview()
-      $0.height.equalTo(86)
-    }
-    
-    userImagesCollectionView.snp.makeConstraints{
-      $0.top.equalTo(profileInfoView.snp.bottom)
-      $0.leading.trailing.equalToSuperview()
-      $0.bottom.equalToSuperview()
-      $0.height.equalTo(view.bounds.height + 100)
-    }
-  }
-}
-
 // MARK: - CollectionViewDataSourse,Delegate
 
 extension ProfileViewController: UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
@@ -157,7 +89,7 @@ extension ProfileViewController: UICollectionViewDataSource, UICollectionViewDel
   }
   
   func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-    guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: reuseIdentifier, for: indexPath) as? ImageCollectionViewCell
+    guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: profileView.reuseIdentifier, for: indexPath) as? ImageCollectionViewCell
     else { return UICollectionViewCell()}
     
     switch networkMode {
@@ -188,89 +120,68 @@ extension ProfileViewController: UICollectionViewDataSource, UICollectionViewDel
 // MARK: - ProfileInfoViewDelegate
 
 extension ProfileViewController: ProfileInfoViewDelegate {
-  
-  func followersTapped(userList: [UserStruct], title: String) {
-    self.navigationController?.pushViewController(UsersListViewController(userList: userList, title: title, token: token), animated: true)
+  func followButtonTapped(user: UserStruct) {
+    if user.currentUserFollowsThisUser {
+      profileModel.unfollow(userID: user.id) { [weak self] (user) in
+        self?.profileView.updateProfileInfoView(user: user, title: "Follow")
+      }
+      
+    }else {
+      profileModel.follow(userID: user.id) { [weak self] (user) in
+        self?.profileView.updateProfileInfoView(user: user, title: "Unfollow")
+      }
+    }
   }
   
-  func followingTapped(userList: [UserStruct], title: String) {
-    self.navigationController?.pushViewController(UsersListViewController(userList: userList, title: title, token: token), animated: true)
+  func followersTapped(userID: String, title: String) {
+    profileModel.getFollowers(userID: userID, completionHandler: { [weak self] (userList) in      
+      self?.navigateToUserList(userList: userList, title: title)
+    })
+  }
+  
+  func followingTapped(userID: String, title: String) {
+    profileModel.getFollowingUsers(userID: userID, completionHandler: { [weak self] (userList) in
+      self?.navigateToUserList(userList: userList, title: title)
+    })
   }
 }
 //MARK: - Activity indicator methods
 
 extension ProfileViewController {
   func showIndicator() {
-    view.addSubview(dimmedView)
-    dimmedView.snp.makeConstraints{
+    view.addSubview(profileView.dimmedView)
+    profileView.dimmedView.snp.makeConstraints{
       $0.edges.equalToSuperview()
     }
     
-    dimmedView.addSubview(indicator)
-    indicator.startAnimating()
-    indicator.snp.makeConstraints{
+    profileView.dimmedView.addSubview(profileView.indicator)
+    profileView.indicator.startAnimating()
+    profileView.indicator.snp.makeConstraints{
       $0.center.equalToSuperview()
     }
   }
   
   func hideIndicator() {
-    indicator.stopAnimating()
-    indicator.hidesWhenStopped = true
-    indicator.removeFromSuperview()
-    dimmedView.removeFromSuperview()
+    profileView.indicator.stopAnimating()
+    profileView.indicator.hidesWhenStopped = true
+    profileView.indicator.removeFromSuperview()
+    profileView.dimmedView.removeFromSuperview()
   }
 }
-// MARK: - LogOutButton handler
+// MARK: - Private methods
 
 extension ProfileViewController {
   @objc private func logOutButtonTapped() {
-    
-    let _ = keychainManager.deleteToken(service: "courseTask", account: nil)
-    
-    switch networkMode {
-    
-    case .online:
-      let signOutRequest = NetworkManager.shared.signOutRequest(token: token)
-      
-      NetworkManager.shared.performRequest(request: signOutRequest,
-                                           session: session)
-      { [weak self] (data) in
-        self?.dataManager.deleteAll(entity: Post.self)
-        self?.dataManager.deleteAll(entity: User.self)
-        
-        DispatchQueue.main.async {
-          let authenticationController = AuthoriseViewController()
-          let authModel = AuthoriseModel()
-          authenticationController.authModel = authModel
-          let dataManager = CoreDataManager(modelName: "UserPost")
-          authModel.dataManager = dataManager
-          UIApplication.shared.windows.first?.rootViewController = authenticationController
-        }
-      }
-      
-    case .offline:
-      dataManager.deleteAll(entity: Post.self)
-      dataManager.deleteAll(entity: User.self)
-      
-      let authModel = AuthoriseModel()
-      authModel.dataManager = dataManager
-      
-      DispatchQueue.main.async {
-        let authenticationController = AuthoriseViewController()
-       // let authModel = AuthoriseModel()
-        authenticationController.authModel = authModel
-        UIApplication.shared.windows.first?.rootViewController = authenticationController
-      }
-    }
+    profileModel.logOut()
   }
   
-  private func configureLogOutButton() {
+  private func configureLogOutButton(userID: String) {
     switch networkMode {
     
     case .online:
       guard let user = user else {return}
       
-      checkIsCurrentUser(user: user) { [weak self] isCurrentUser in
+      profileModel.checkIsCurrentUser(user: user) { [weak self] isCurrentUser in
         if isCurrentUser {
           
           DispatchQueue.main.async {
@@ -282,7 +193,7 @@ extension ProfileViewController {
           }
         }
       }
-
+      
     case .offline:
       let logOutButton = UIBarButtonItem(title: "Log Out",
                                          style: .plain,
@@ -293,90 +204,59 @@ extension ProfileViewController {
     }
   }
   
-  private func checkIsCurrentUser(user: UserStruct, handler: @escaping (Bool) -> Void) {
-    let currentUserRequest = NetworkManager.shared.currentUserRequest(token: token)
+  private func navigateToUserList(userList: [UserStruct], title: String) {
+    let userListController = UsersListViewController(userList: userList, title: title, token: token, networkMode: networkMode)
+    userListController.dataManager = profileModel.dataManager
     
-    NetworkManager.shared.performRequest(request: currentUserRequest,
-                                         session: session)
-    { [weak self] (result) in
-      switch result {
-      
-      case .success(let data):
-        guard let currenUser = NetworkManager.shared.parseJSON(jsonData: data,
-                                                               toType: UserStruct.self) else {return}
-        if self?.user?.id == currenUser.id  {
-          handler(true)
-        }
-        
-      case .failure(let error):
-        DispatchQueue.main.async {
-          self?.showAlert(error: error)
-        }
-      }
-    }
+    navigationController?.pushViewController(userListController, animated: true)
   }
-}
-// MARK: - Get Posts
-
-extension ProfileViewController {
-  private func getUserPosts() {
+  
+  private func configureFollowButton(user: UserStruct) {
     switch networkMode {
     
     case .online:
-      guard let user = user else {return}
-      
-      let userPostsRequest = NetworkManager.shared.getPostsByUserRequest(withUserID: user.id,
-                                                                         token: token)
-      NetworkManager.shared.performRequest(request: userPostsRequest,
-                                           session: session) {
-        [weak self] (result) in
-        switch result {
-        
-        case .success(let data):
-          guard let posts = NetworkManager.shared.parseJSON(jsonData: data,
-                                                            toType: [PostStruct].self) else {return}
-          self?.userPosts = posts.reversed()
+      profileModel.checkIsCurrentUser(user: user) { [weak self] (isCurrentUser) in
+        if isCurrentUser {
           
           DispatchQueue.main.async {
-            self?.userImagesCollectionView.reloadData()
-            self?.hideIndicator()
+            self?.profileView.hideFollowButton()
           }
-          
-          self?.checkIsCurrentUser(user: user, handler: { [weak self] (isCurrentUser) in
-            if isCurrentUser {
-              self?.dataManager.saveCurrentUser(currUser: user)
-              for post in posts {
-                self?.dataManager.savePost(post: post)
-              }
-            }
-          })
-          
-        case .failure(let error):
+        } else {
           DispatchQueue.main.async {
-            self?.showAlert(error: error)
+            self?.profileView.showFollowButton()
           }
         }
       }
       
     case .offline:
-      guard let user = user else {return}
-      userPosts = []
-      
-      let predicate = NSPredicate(format: "author == %@", user.id)
-      let sortDescriptor = NSSortDescriptor(key: #keyPath(Post.createdTime), ascending: false)
-      
-      let fetchedPosts = dataManager.fetchData(for: Post.self,
-                                               predicate: predicate,
-                                               sortDescriptor: sortDescriptor)
-      let converter = Converter()
-      
-      for post in fetchedPosts {
-        guard let postStruct = converter.convertToStruct(post: post) else {return}
-        userPosts?.append(postStruct)
-      }
-      
-      userImagesCollectionView.reloadData()
-      hideIndicator()
+      profileView.hideFollowButton()
     }
+  }
+  
+  private func getUserPosts() {
+    guard let user = user else {return}
+    
+    profileModel.getUserPosts(user: user) { [weak self] (userPosts) in
+      self?.userPosts = userPosts
+      self?.profileView.userImagesCollectionView.reloadData()
+      self?.hideIndicator()
+    }
+  }
+}
+
+// MARK: - ProfileModelDelegate
+
+extension ProfileViewController: ProfileModelDelegate {
+  func navigateToAuth() {
+    let authenticationController = AuthoriseViewController()
+    let authModel = AuthoriseModel()
+    authenticationController.authModel = authModel
+    let dataManager = CoreDataManager(modelName: "UserPost")
+    authModel.dataManager = dataManager
+    UIApplication.shared.windows.first?.rootViewController = authenticationController
+  }
+  
+  func getError(error: NetworkError) {
+    showAlert(error: error)
   }
 }
