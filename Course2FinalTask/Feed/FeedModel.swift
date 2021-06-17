@@ -43,13 +43,12 @@ final class FeedModel: FeedModelProtocol {
     self.networkMode = networkMode
     self.token = token
   }
-// MARK: GetUser
+// MARK: - GetUser
   
   func getUser(withUserID userID: String, completionHandler: @escaping (UserData) -> Void) /*-> UserStruct*/ {
     switch networkMode {
     
     case .online:
-        
         let userRequest = NetworkManager.shared.getUserRequest(withUserID: userID,
                                                                token: token)
         NetworkManager.shared.performRequest(request: userRequest,
@@ -75,16 +74,16 @@ final class FeedModel: FeedModelProtocol {
       delegate?.showOfflineAlert()
     }
   }
-// MARK: GetFeed
+// MARK: - GetFeed
   
   func getFeed(token: String, completionHandler: @escaping ([PostData]) -> Void) {
     switch networkMode {
+    
     case .online:
       let postsRequest = NetworkManager.shared.getFeedRequest(token: token)
       
       NetworkManager.shared.performRequest(request: postsRequest, session: session) {
         [weak self] (result) in
-        
         switch result {
         
         case .success(let data):
@@ -126,7 +125,7 @@ final class FeedModel: FeedModelProtocol {
       }
     }
   }
-// MARK: Like
+// MARK: - Like
   
   func likePost(withPostID postID: String, completionHandler: @escaping (PostData) -> Void) {
     switch networkMode {
@@ -145,7 +144,6 @@ final class FeedModel: FeedModelProtocol {
           DispatchQueue.main.async {
             completionHandler(post)
           }
-          
         
         case .failure(let error):
           DispatchQueue.main.async {
@@ -158,7 +156,7 @@ final class FeedModel: FeedModelProtocol {
       delegate?.showOfflineAlert()
     }
   }
-  // MARK: Unlike
+  // MARK: - Unlike
   
   func unlikePost(withPostID postID: String, completionHandler: @escaping (PostData) -> Void) {
     switch networkMode {
@@ -178,7 +176,6 @@ final class FeedModel: FeedModelProtocol {
             completionHandler(post)
           }
           
-          
         case .failure(let error):
           DispatchQueue.main.async {
             self?.delegate?.getError(error: error)
@@ -191,7 +188,7 @@ final class FeedModel: FeedModelProtocol {
     }
   }
 
-  // MARK: GetLikes
+  // MARK: - GetLikes
   
   func getLikes(withPostID postID: String, completionHandler: @escaping ([UserData]) -> Void) {
     switch networkMode {
@@ -208,7 +205,9 @@ final class FeedModel: FeedModelProtocol {
         case .success(let data):
           guard let users = NetworkManager.shared.parseJSON(jsonData: data,
                                                             toType: [UserData].self) else {return}
-          completionHandler(users)
+          DispatchQueue.main.async {
+            completionHandler(users)
+          }          
           
         case .failure(let error):
           DispatchQueue.main.async {

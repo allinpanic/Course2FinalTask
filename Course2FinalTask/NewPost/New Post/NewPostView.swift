@@ -39,8 +39,7 @@ final class NewPostView: UIView, NewPostViewProtocol {
     fatalError("init(coder:) has not been implemented")
   }
   
-  private func setupLayout() {
-    
+  private func setupLayout() {    
     backgroundColor = .white
     addSubview(imagesCollectionView)
     

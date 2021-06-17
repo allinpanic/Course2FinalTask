@@ -38,34 +38,17 @@ final class AddDescriptionViewController: UIViewController {
     super.viewDidLoad()
     addDescModel.delegate = self
     
-    self.navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Share",
-                                                             style: .plain,
-                                                             target: self,
-                                                             action: #selector(sharePostButtonTapped))
-    
-    handleKeyboard()
+    addDescView.setRightBarButtonItem(viewController: self, action: #selector(sharePostButtonTapped))
   }
 }
 // MARK: - Button Handler
 
 extension AddDescriptionViewController {
   @objc private func sharePostButtonTapped() {
-    guard let postImage = addDescView.filteredImageView.image,
-          let text = addDescView.descriptionTextField.text else {return}
+    guard let postImage = addDescView.image,
+          let text = addDescView.getDescription() else {return}
     
     addDescModel.sharePost(image: postImage, description: text)
-  }
-}
-// MARK: - Handle Keyboard
-
-extension AddDescriptionViewController {
-  private func handleKeyboard() {
-    let tap = UITapGestureRecognizer(target: self, action: #selector(dissmissKeyBoard))    
-    view.addGestureRecognizer(tap)
-  }
-  
-  @objc private func dissmissKeyBoard() {
-    view.endEditing(true)
   }
 }
 // MARK: - AddDescriptionModelDelegate

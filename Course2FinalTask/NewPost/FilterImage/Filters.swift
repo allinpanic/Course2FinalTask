@@ -8,7 +8,7 @@
 
 import UIKit
 
-class Filters {
+final class Filters {
   private let context = CIContext()
   
   let filterNamesArray = ["CIPhotoEffectChrome", "CIColorPosterize", "CIColorMonochrome", "CIGaussianBlur", "CIMotionBlur", "CIColorInvert", "CISepiaTone", "CIBloom",  "CIVignetteEffect"]

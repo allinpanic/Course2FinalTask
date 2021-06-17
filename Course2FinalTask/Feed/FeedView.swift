@@ -7,17 +7,10 @@
 //
 
 import UIKit
-
-//protocol FeedViewDelegate: class, UITableViewDelegate, UITableViewDataSource {
-//
-//}
 // MARK: - FeedViewProtocol
 
 protocol FeedViewProtocol: UIView {
   var feedTableView: UITableView { get set }
-  var indicator: UIActivityIndicatorView { get }
-  var dimmedView: UIView { get }
-//  var delegate: FeedViewDelegate? { get set }
   func updateLikesCount(likesCount: Int, index: Int)
   func updatePost(post: PostData, atIndex: Int)
   
@@ -27,7 +20,6 @@ protocol FeedViewProtocol: UIView {
 // MARK: - FeedView
 
 final class FeedView: UIView, FeedViewProtocol {
-//  weak var delegate: FeedViewDelegate?
   private let reuseIdentifier = "postCell"
   
   lazy var feedTableView: UITableView = {
@@ -39,13 +31,13 @@ final class FeedView: UIView, FeedViewProtocol {
     return tableView
   }()
   
-   var indicator: UIActivityIndicatorView = {
+   private var indicator: UIActivityIndicatorView = {
     let indicator = UIActivityIndicatorView()
     indicator.style = .white
     return indicator
   }()
   
-   var dimmedView: UIView = {
+   private var dimmedView: UIView = {
     let view = UIView()
     view.backgroundColor = .black
     view.alpha = 0.7

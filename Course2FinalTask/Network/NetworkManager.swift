@@ -53,7 +53,7 @@ final class NetworkManager {
   }
   // MARK: - Make POST Requests
   
-   private func signinRequest(userName: String, password: String) -> URLRequest? {
+  private func signinRequest(userName: String, password: String) -> URLRequest? {
     
     guard let url = makeURL(path: "/signin") else {return nil}
     

@@ -15,10 +15,10 @@ protocol FilterImageViewProtocol: UIView {
   var filtersPreviewCollectionView: UICollectionView { get set }
   var image: UIImage! { get set }
   var dimmedView: UIView { get }
-  var indicator: UIActivityIndicatorView { get }
-  
+  var indicator: UIActivityIndicatorView { get }  
   func showIndicator()
   func hideIndicator()
+  func setRightBarButtonItem(viewController: UIViewController, action: Selector)
 }
 // MARK: - FilterImageView
 
@@ -105,5 +105,12 @@ final class FilterImageView: UIView, FilterImageViewProtocol {
     indicator.hidesWhenStopped = true
     indicator.removeFromSuperview()
     dimmedView.removeFromSuperview()
+  }
+  
+  func setRightBarButtonItem(viewController: UIViewController, action: Selector) {
+    viewController.navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Next",
+                                                             style: .plain,
+                                                             target: viewController,
+                                                             action: action)
   }
 }

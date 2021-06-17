@@ -11,14 +11,12 @@ import UIKit
 
 protocol ProfileViewProtocol: UIView {
   var user: UserData! { get set }
-  var indicator: UIActivityIndicatorView { get }
-  var dimmedView: UIView { get }
   var userImagesCollectionView: UICollectionView { get set }
   var reuseIdentifier: String { get }
   func showFollowButton()
   func hideFollowButton()
   func updateProfileInfoView(user: UserData, title: String)
-  
+  func setLogOutButton(viewController: UIViewController?, action: Selector)
   func showIndicator()
   func hideIndicator()
 }
@@ -59,13 +57,13 @@ final class ProfileView: UIView, ProfileViewProtocol {
     return profileInfo
   }()
   
-  var indicator: UIActivityIndicatorView = {
+  private var indicator: UIActivityIndicatorView = {
     let indicator = UIActivityIndicatorView()
     indicator.style = .white
     return indicator
   }()
   
-  var dimmedView: UIView = {
+  private var dimmedView: UIView = {
     let view = UIView()
     view.backgroundColor = .black
     view.alpha = 0.7
@@ -139,5 +137,13 @@ final class ProfileView: UIView, ProfileViewProtocol {
     indicator.hidesWhenStopped = true
     indicator.removeFromSuperview()
     dimmedView.removeFromSuperview()
+  }
+  
+  func setLogOutButton(viewController: UIViewController?, action: Selector) {
+    let logOutButton = UIBarButtonItem(title: "Log Out",
+                                       style: .plain,
+                                       target: viewController,
+                                       action: action)
+    viewController?.navigationItem.rightBarButtonItem = logOutButton
   }
 }

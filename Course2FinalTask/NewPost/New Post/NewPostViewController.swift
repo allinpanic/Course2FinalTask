@@ -33,7 +33,6 @@ final class NewPostViewController: UIViewController {
   
   override func loadView() {
     super.loadView()
-    
     view = newPostView
   }
   
@@ -42,7 +41,7 @@ final class NewPostViewController: UIViewController {
     
     self.navigationItem.title = "New Post"
     
-    minImages = [UIImage(named: "new1"), UIImage(named: "new2"), UIImage(named: "new3" ), UIImage(named: "new4"), UIImage(named: "new5"), UIImage(named: "new6"), UIImage(named: "new7"), UIImage(named: "new8")]
+    minImages = [UIImage(named: "new1"), UIImage(named: "new2"), UIImage(named: "new3"), UIImage(named: "new4"), UIImage(named: "new5"), UIImage(named: "new6"), UIImage(named: "new7"), UIImage(named: "new8")]
   }
 }
 //MARK: - CollectionView DataSource Delegate

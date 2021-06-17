@@ -22,8 +22,6 @@ final class ProfileInfoView: UIView {
   weak var delegate: ProfileInfoViewDelegate?
   var user: UserData?
   
-  private let session = URLSession.shared
-  
   private var userAvatarImageView: UIImageView = {
     let imageView = UIImageView()
     imageView.layer.cornerRadius = 35

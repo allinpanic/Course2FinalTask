@@ -58,17 +58,13 @@ public final class Builder: BuilderProtocol {
   static func createAuthViewController(dataManager: CoreDataManager) -> AuthoriseViewController {
     let authoriseViewController = AuthoriseViewController()
     let authModel = AuthoriseModel()
-    
-    //let dataManager = CoreDataManager(modelName: "UserPost")
     authModel.dataManager = dataManager
-    
     authoriseViewController.authModel = authModel
     
     return authoriseViewController
   }
   
   static func createProfileViewController(user: UserData, dataManager: CoreDataManager, networkMode: NetworkMode, token: String) -> ProfileViewController {
-   // let profileViewController = ProfileViewController(user: user, token: token)
     let profileViewController = ProfileViewController(user: user, token: token)
     let profileModel = ProfileModel(networkMode: networkMode, token: token)
     profileModel.dataManager = dataManager
@@ -79,12 +75,11 @@ public final class Builder: BuilderProtocol {
     return profileViewController
   }
   
-//  static func createFeedViewController(dataManager: CoreDataManager, networkMode: NetworkMode, token: String) -> FeedViewController {
-//
-//  }
-  
   static func createUserListViewController(userList: [UserData], dataManager: CoreDataManager, networkMode: NetworkMode, token: String, title: String) -> UsersListViewController {
-    let userListController = UsersListViewController(userList: userList, title: title, token: token, networkMode: networkMode)
+    let userListController = UsersListViewController(userList: userList,
+                                                     title: title,
+                                                     token: token,
+                                                     networkMode: networkMode)
     userListController.dataManager = dataManager
     
     return userListController
@@ -103,7 +98,6 @@ public final class Builder: BuilderProtocol {
   static func createAddDescriptionViewController(image: UIImage?, networkMode: NetworkMode, token: String) -> AddDescriptionViewController {
     let addDescriptionViewController = AddDescriptionViewController(filteredImage: image)
     let addDescModel = AddDescriptionModel(networkMode: networkMode, token: token)
-    
     addDescriptionViewController.addDescModel = addDescModel
     
     return addDescriptionViewController

@@ -12,13 +12,8 @@ final class FilterImageViewController: UIViewController {
 // MARK: - Properties
   var token: String = ""
   var networkMode: NetworkMode = .online
-  
-  private var selectedImage: UIImage
-  private var index: Int
-  private let filterNames: [String] = []
-  private var thumbnails: [UIImage] = []
-  
   var filterImageModel: FilterImageModelProtocol!
+  
   lazy var filterImageView: FilterImageViewProtocol = {
     let view = FilterImageView()
     view.image = selectedImage
@@ -26,6 +21,11 @@ final class FilterImageViewController: UIViewController {
     view.filtersPreviewCollectionView.dataSource = self
     return view
   }()
+  
+  private var selectedImage: UIImage
+  private var index: Int
+//  private let filterNames: [String] = []
+  private var thumbnails: [UIImage] = []
 // MARK: - Inits
   
   init(image: UIImage, index: Int) {
@@ -49,11 +49,8 @@ final class FilterImageViewController: UIViewController {
     super.viewDidLoad()
     
     filterImageModel.delegate = self
-
-    self.navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Next",
-                                                             style: .plain,
-                                                             target: self,
-                                                             action: #selector(showAddDescriptionToPost))
+    
+    filterImageView.setRightBarButtonItem(viewController: self, action: #selector(showAddDescriptionToPost))
     
     thumbnails = filterImageModel.generateThumbnails(image: selectedImage)
     filterCollectionView()
@@ -80,7 +77,6 @@ extension FilterImageViewController: UICollectionViewDataSource, UICollectionVie
   }
   
   func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-    
     let imageToFilter = self.selectedImage
     
     filterImageModel.filterImage(image: imageToFilter, filterIndex: indexPath.row) { [weak self] (filteredImage) in
@@ -103,7 +99,7 @@ extension FilterImageViewController {
 
 extension FilterImageViewController {
   
-  private func filterCollectionView() {
+  private func filterCollectionView() {    
     filterImageModel.filterCollectionView(thumbnails: thumbnails)
   }
 }
@@ -111,7 +107,7 @@ extension FilterImageViewController {
 
 extension FilterImageViewController: FilterImageModelDelegate {
   func updateCollectionView(withImage image: UIImage, atIndex: Int) {
-    thumbnails[index] = image
+    thumbnails[atIndex] = image
     filterImageView.filtersPreviewCollectionView.reloadData()
   }
   

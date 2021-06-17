@@ -67,6 +67,16 @@ extension UIViewController {
     present(alert, animated: true, completion: nil)
   }
   
+  func showAlert(title: String, message: String) {
+    let alertVC = UIAlertController(title: title, message: message, preferredStyle: .alert)
+    let action = UIAlertAction(title: "OK", style: .cancel) { (action) in
+      alertVC.dismiss(animated: true, completion: nil)
+    }
+    
+    alertVC.addAction(action)
+    present(alertVC, animated: true, completion: nil)
+  }
+  
   func showOfflineAlert() {
     let alert = UIAlertController(title: "Offline Mode", message: nil, preferredStyle: .alert)
     let alertAction = UIAlertAction(title: "OK", style: .default, handler: nil)

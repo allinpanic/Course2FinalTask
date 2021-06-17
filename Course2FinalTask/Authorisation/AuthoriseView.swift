@@ -16,19 +16,18 @@ protocol AuthoriseViewDelegate: class, UITextFieldDelegate {
 // MARK: - AuthoriseViewProtocol
 
 protocol AuthoriseViewProtocol: UIView {
-  var dimmedView: UIView { get }
-  var indicator: UIActivityIndicatorView { get }
-  var loginTextField: UITextField { get }
-  var passwordTextField: UITextField { get }
   func showIndicator()
   func hideIndicator()
+  func setTextFieldsDelegate(delegate: UITextFieldDelegate)
+  func getLogin() -> String?
+  func getPassword() -> String?
 }
 // MARK: - AuthoriseView
 
-final class AuthoriseView: UIView, AuthoriseViewProtocol {
+final class AuthoriseView: UIView {
   weak var delegate: AuthoriseViewDelegate?
   
-  lazy var loginTextField: UITextField = {
+  private lazy var loginTextField: UITextField = {
     let textField = UITextField()
     textField.autocorrectionType = .no
     textField.placeholder = "Login"
@@ -37,12 +36,11 @@ final class AuthoriseView: UIView, AuthoriseViewProtocol {
     textField.font = .systemFont(ofSize: 14)
     textField.borderStyle = .roundedRect
     textField.returnKeyType = .send
-    textField.delegate = self.delegate
     textField.addTarget(self, action: #selector(textChanged(_:)), for: .editingChanged)
     return textField
   }()
   
-  lazy var passwordTextField: UITextField = {
+  private lazy var passwordTextField: UITextField = {
     let textField = UITextField()
     textField.autocorrectionType = .no
     textField.placeholder = "Password"
@@ -51,7 +49,6 @@ final class AuthoriseView: UIView, AuthoriseViewProtocol {
     textField.font = .systemFont(ofSize: 14)
     textField.borderStyle = .roundedRect
     textField.returnKeyType = .send
-    textField.delegate = self.delegate
     textField.addTarget(self, action: #selector(textChanged(_:)), for: .editingChanged)
     return textField
   }()
@@ -69,13 +66,13 @@ final class AuthoriseView: UIView, AuthoriseViewProtocol {
     return button
   }()
   
-  var indicator: UIActivityIndicatorView = {
+  private var indicator: UIActivityIndicatorView = {
     let indicator = UIActivityIndicatorView()
     indicator.style = .white
     return indicator
   }()
 
-  var dimmedView: UIView = {
+  private var dimmedView: UIView = {
     let view = UIView()
     view.backgroundColor = .black
     view.alpha = 0.7
@@ -97,6 +94,8 @@ final class AuthoriseView: UIView, AuthoriseViewProtocol {
     addSubview(loginTextField)
     addSubview(passwordTextField)
     addSubview(signInButton)
+    
+    handleKeyboard()
     
     loginTextField.snp.makeConstraints {
       $0.height.equalTo(40)
@@ -137,6 +136,18 @@ final class AuthoriseView: UIView, AuthoriseViewProtocol {
     }
   }
   
+  private func handleKeyboard() {
+    let tap = UITapGestureRecognizer(target: self, action: #selector(dissmissKeyBoard))
+    addGestureRecognizer(tap)
+  }
+  
+  @objc private func dissmissKeyBoard() {
+    endEditing(true)
+  }
+}
+// MARK: - AuthoriseViewProtocol methods
+
+extension AuthoriseView: AuthoriseViewProtocol {
   func hideIndicator() {
     indicator.stopAnimating()
     indicator.hidesWhenStopped = true
@@ -155,5 +166,18 @@ final class AuthoriseView: UIView, AuthoriseViewProtocol {
     indicator.snp.makeConstraints{
       $0.center.equalToSuperview()
     }
+  }
+  
+  func setTextFieldsDelegate(delegate: UITextFieldDelegate) {
+    loginTextField.delegate = delegate
+    passwordTextField.delegate = delegate
+  }
+  
+  func getLogin() -> String? {
+    return loginTextField.text
+  }
+  
+  func getPassword() -> String? {
+    return passwordTextField.text
   }
 }

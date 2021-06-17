@@ -14,6 +14,9 @@ final class AuthoriseViewController: UIViewController {
   private lazy var authView: AuthoriseViewProtocol = {
     let view = AuthoriseView()
     view.delegate = self
+    view.setTextFieldsDelegate(delegate: self)
+//    view.passwordTextField.delegate = self
+//    view.loginTextField.delegate = self
     return view
   }()
   
@@ -36,31 +39,22 @@ final class AuthoriseViewController: UIViewController {
     if let token = authModel.getTokenFromKeychain() {
       authModel.checkToken(token: token)
     }
-    
-    handleKeyboard()
   }
 }
 // MARK: - TextFieldDelegate
 
 extension AuthoriseViewController: UITextFieldDelegate {
-  func textFieldShouldReturn(_ textField: UITextField) -> Bool {
-    
+  func textFieldShouldReturn(_ textField: UITextField) -> Bool {    
     textField.resignFirstResponder()
     
-    if let loginText = authView.loginTextField.text,
-       let passwordText = authView.passwordTextField.text {
+    if let login = authView.getLogin(),
+       let password = authView.getPassword() {
       
-      if !loginText.isEmpty && !passwordText.isEmpty {
-        signIn(login: loginText, password: passwordText)
+      if !login.isEmpty && !password.isEmpty {
+        signIn(login: login, password: password)
         return true
       } else {
-        let alertVC = UIAlertController(title: "Empty Field", message: "Specify Login or Password ", preferredStyle: .alert)
-        let action = UIAlertAction(title: "OK", style: .cancel) { (action) in
-          alertVC.dismiss(animated: true, completion: nil)
-        }
-        
-        alertVC.addAction(action)
-        present(alertVC, animated: true, completion: nil)
+        showAlert(title: "Empty Field", message: "Specify Login or Password")
       }
     }
     return true
@@ -95,17 +89,5 @@ extension AuthoriseViewController: AuthoriseModelDelegate {
   
   func showIndicator() {
     authView.showIndicator()
-  }
-}
-// MARK: - Handle Keyboard
-
-extension AuthoriseViewController {
-  private func handleKeyboard() {
-    let tap = UITapGestureRecognizer(target: self, action: #selector(dissmissKeyBoard))
-    view.addGestureRecognizer(tap)
-  }
-  
-  @objc private func dissmissKeyBoard() {
-    view.endEditing(true)
   }
 }

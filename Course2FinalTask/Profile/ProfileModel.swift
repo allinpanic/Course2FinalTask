@@ -14,7 +14,7 @@ protocol ProfileModelDelegate: class {
   func getError(error: NetworkError)
   func showOfflineAlert()
   func showIndicator()
-  func  hideIndicator()
+  func hideIndicator()
 }
 // MARK: - ProfileModelProtocol
 
@@ -45,7 +45,7 @@ final class ProfileModel: ProfileModelProtocol {
     self.token = token
   }
   
-// MARK: LogOut
+// MARK: - LogOut
   func logOut() {
     let _ = keychainManager.deleteToken(service: "courseTask", account: nil)
     
@@ -147,8 +147,8 @@ final class ProfileModel: ProfileModelProtocol {
       let followersRequest = NetworkManager.shared.getFollowingUsersForUserRequest(withUserID: userID,
                                                                                    token: token)
       NetworkManager.shared.performRequest(request: followersRequest,
-                                           session: session) {
-        [weak self](result) in
+                                           session: session)
+      { [weak self](result) in
         switch result {
         
         case .success(let data):
@@ -216,9 +216,13 @@ final class ProfileModel: ProfileModelProtocol {
         guard let currenUser = NetworkManager.shared.parseJSON(jsonData: data,
                                                                toType: UserData.self) else {return}
         if user.id == currenUser.id  {
-          handler(true)
+          DispatchQueue.main.async {
+            handler(true)
+          }
         } else {
-          handler(false)
+          DispatchQueue.main.async {
+            handler(false)
+          }          
         }
         
       case .failure(let error):
@@ -237,8 +241,8 @@ final class ProfileModel: ProfileModelProtocol {
       let userPostsRequest = NetworkManager.shared.getPostsByUserRequest(withUserID: user.id,
                                                                          token: token)
       NetworkManager.shared.performRequest(request: userPostsRequest,
-                                           session: session) {
-        [weak self] (result) in
+                                           session: session)
+      { [weak self] (result) in
         switch result {
         
         case .success(let data):

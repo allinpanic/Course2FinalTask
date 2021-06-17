@@ -30,12 +30,12 @@ protocol AuthoriseModelProtocol: class {
 final class AuthoriseModel: AuthoriseModelProtocol {
   
   var dataManager: CoreDataManager!
+  weak var delegate: AuthoriseModelDelegate?
   
   private var keychainManager = KeychainManager()
   private let session = URLSession.shared
   
-  weak var delegate: AuthoriseModelDelegate?
-// MARK: Check Token
+// MARK: - Check Token
   
   func checkToken(token: String) {    
     NetworkManager.shared.getCurrentUser(token: token,
@@ -44,7 +44,6 @@ final class AuthoriseModel: AuthoriseModelProtocol {
       switch result {
       
       case .success(let currentUser):
-        
         guard let dataManager = self?.dataManager else {return}
         
         DispatchQueue.main.async {
@@ -87,7 +86,7 @@ final class AuthoriseModel: AuthoriseModelProtocol {
       }
     }
   }
-  // MARK: SignIn
+  // MARK: - SignIn
   
   func signIn(login: String, password: String) {
     NetworkManager.shared.signIn(userName: login,
@@ -120,6 +119,7 @@ final class AuthoriseModel: AuthoriseModelProtocol {
       }
     }
   }
+  // MARK: - GetTokenFromKeychain
   
   func getTokenFromKeychain() -> String? {
     if let token = keychainManager.readToken(service: "courseTask", account: nil)  {
@@ -127,7 +127,6 @@ final class AuthoriseModel: AuthoriseModelProtocol {
       DispatchQueue.main.async {
         self.delegate?.showIndicator()
       }
-      delegate?.showIndicator()
       return token
     }
     return nil

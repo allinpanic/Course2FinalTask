@@ -31,7 +31,7 @@ final class FilterImageModel: FilterImageModelProtocol {
   
   private let filters = Filters()
   
-  // MARK: GenerateThimbnails
+  // MARK: - GenerateThimbnails
   
   func generateThumbnails(image: UIImage) -> [UIImage] {
     var thumbnails = [UIImage]()
@@ -55,7 +55,7 @@ final class FilterImageModel: FilterImageModelProtocol {
     
     return thumbnails
   }
-  // MARK: Filter Methods
+  // MARK: - Filter Methods
   
   func filtersCount() -> Int {
     return filters.filterNamesArray.count
@@ -92,9 +92,10 @@ final class FilterImageModel: FilterImageModelProtocol {
     
     for (index, filter) in filters.filterNamesArray.enumerated() {
       
+      let parameters = filters.getParameters(filter: filter, image: thumbnails[index])
+      
       globalQueue.async { [weak self] in
-        guard let parameters = self?.filters.getParameters(filter: filter, image: thumbnails[index]),
-              let image = self?.filters.applyFilter(name: filter, parameters: parameters) else {return}
+          guard    let image = self?.filters.applyFilter(name: filter, parameters: parameters) else {return}
         
         DispatchQueue.main.async {
           self?.delegate?.updateCollectionView(withImage: image, atIndex: index)

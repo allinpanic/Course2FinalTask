@@ -11,8 +11,8 @@ import UIKit
 
 protocol AddDescriptionViewProtocol: UIView {
   var image: UIImage! { get set }
-  var filteredImageView: UIImageView { get set }
-  var descriptionTextField: UITextField { get set }
+  func setRightBarButtonItem(viewController: UIViewController, action: Selector)
+  func getDescription() -> String?
 }
 // MARK: - AddDescriptionView
 
@@ -24,7 +24,7 @@ final class AddDescriptionView: UIView, AddDescriptionViewProtocol {
     }
   }
   
-  var filteredImageView: UIImageView = {
+  private var filteredImageView: UIImageView = {
     let imageView = UIImageView()
     imageView.contentMode = .scaleAspectFill
     return imageView
@@ -38,7 +38,7 @@ final class AddDescriptionView: UIView, AddDescriptionViewProtocol {
     return label
   }()
   
-  lazy var descriptionTextField: UITextField = {
+  private lazy var descriptionTextField: UITextField = {
     let textField = UITextField()
     textField.borderStyle = .roundedRect
     return textField
@@ -62,6 +62,8 @@ final class AddDescriptionView: UIView, AddDescriptionViewProtocol {
     addSubview(addLabel)
     addSubview(descriptionTextField)
     
+    handleKeyboard()
+    
     filteredImageView.snp.makeConstraints {
       $0.top.equalTo(safeAreaLayoutGuide.snp.top).inset(16)
       $0.leading.equalToSuperview().inset(16)
@@ -77,5 +79,27 @@ final class AddDescriptionView: UIView, AddDescriptionViewProtocol {
       $0.trailing.leading.equalToSuperview().inset(16)
       $0.top.equalTo(addLabel.snp.bottom).offset(8)
     }
+  }
+  // MARK: - Handle keyboard
+  
+  private func handleKeyboard() {
+    let tap = UITapGestureRecognizer(target: self, action: #selector(dissmissKeyBoard))
+    addGestureRecognizer(tap)
+  }
+  
+  @objc private func dissmissKeyBoard() {
+    endEditing(true)
+  }
+  // MARK: - Protocol methods
+  
+  func setRightBarButtonItem(viewController: UIViewController, action: Selector) {
+    viewController.navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Share",
+                                                             style: .plain,
+                                                             target: viewController,
+                                                             action: action)
+  }
+  
+  func getDescription() -> String? {
+    return descriptionTextField.text
   }
 }

@@ -36,14 +36,12 @@ final class FeedViewController: UIViewController {
   
   override func loadView() {
     super.loadView()
-    
     view = feedView
   }
   
   override func viewDidLoad() {
     super.viewDidLoad()
-    
-    feedView.feedTableView.dataSource = self
+
     feedModel.delegate = self
     
     showIndicator()
@@ -73,7 +71,6 @@ extension FeedViewController: UITableViewDataSource {
     cell.networkMode = networkMode
     cell.index = indexPath.row
     cell.post = posts[indexPath.row]
-//    cell.index = indexPath.row
     cell.delegate = self
     
     return cell
@@ -98,6 +95,7 @@ extension FeedViewController: FeedPostCellDelegate {
   
   func postHeaderViewTapped(userID: String) {
     feedModel.getUser(withUserID: userID) { [weak self] (user) in
+      
       self?.navigateToProfileVC(user: user)
     }
   }
@@ -106,18 +104,14 @@ extension FeedViewController: FeedPostCellDelegate {
     feedModel.getLikes(withPostID: postID) { [weak self] (users) in
       let likesCount = users.count
       
-      DispatchQueue.main.async {
-        self?.feedView.updateLikesCount(likesCount: likesCount, index: index) //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      }
+      self?.feedView.updateLikesCount(likesCount: likesCount, index: index)
     }
   }
   
   func likesLabelTapped(postID: String, title: String) {
     feedModel.getLikes(withPostID: postID) { [weak self] (users) in
       
-      DispatchQueue.main.async {
-        self?.navigateToUserList(userList: users, title: title)
-      }
+      self?.navigateToUserList(userList: users, title: title)
     }
   }
   
@@ -144,19 +138,8 @@ extension FeedViewController {
     imageView.layer.add(animation, forKey: "opacity")
     imageView.layer.opacity = 0
   }
-
-  private func navigateToUserList(userList: [UserData], title: String) {
-    
-    let userListController = Builder.createUserListViewController(userList: userList,
-                                                                  dataManager: dataManager,
-                                                                  networkMode: networkMode,
-                                                                  token: token,
-                                                                  title: title)
-    
-    navigationController?.pushViewController(userListController, animated: true)
-  }
 }
-// MARK: - Get Posts
+// MARK: - Private methods
 
 extension FeedViewController {
   private func getPosts() {
@@ -168,28 +151,16 @@ extension FeedViewController {
     }
   }
   
-//  private func getLikesCount(post: PostStruct, handler: @escaping (Int) -> Void) {
-//    let usersLikedRequest = NetworkManager.shared.getUsersLikedPostRequest(withPostID: post.id,
-//                                                                           token: token)
-//
-//    NetworkManager.shared.performRequest(request: usersLikedRequest,
-//                                         session: URLSession.shared)
-//    { [weak self] (result) in
-//      switch result {
-//
-//      case .success(let data):
-//        guard let users = NetworkManager.shared.parseJSON(jsonData: data,
-//                                                          toType: [UserStruct].self) else {return}
-//
-//        handler(users.count)
-//
-//      case .failure(let error):
-//        DispatchQueue.main.async {
-//          self?.showAlert(error: error)
-//        }
-//      }
-//    }
-//  }
+  private func navigateToUserList(userList: [UserData], title: String) {
+    
+    let userListController = Builder.createUserListViewController(userList: userList,
+                                                                  dataManager: dataManager,
+                                                                  networkMode: networkMode,
+                                                                  token: token,
+                                                                  title: title)
+    
+    navigationController?.pushViewController(userListController, animated: true)
+  }
 }
 // MARK: - FeedModelDelegate
 

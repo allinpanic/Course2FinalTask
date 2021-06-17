@@ -33,7 +33,7 @@ final class AddDescriptionModel: AddDescriptionModelProtocol {
     self.networkMode = networkMode
     self.token = token
   }
-  // MARK: SharePost
+  // MARK: - SharePost
   
   func sharePost(image: UIImage, description: String) {
     switch networkMode {

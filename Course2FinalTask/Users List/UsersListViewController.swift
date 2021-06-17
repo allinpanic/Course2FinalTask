@@ -11,8 +11,6 @@ import UIKit
 
 final class UsersListViewController: UIViewController {
 
-  private let token: String
-  private var networkMode: NetworkMode
   var dataManager: CoreDataManager!
   
   lazy var userListView: UserListViewProtocol = {
@@ -22,6 +20,8 @@ final class UsersListViewController: UIViewController {
     return view
   }()
   
+  private let token: String
+  private var networkMode: NetworkMode
   private var userList: [UserData]
   // MARK: - Inits
   
@@ -62,7 +62,8 @@ extension UsersListViewController: UITableViewDataSource, UITableViewDelegate {
   
   func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
     guard let cell = tableView.dequeueReusableCell(withIdentifier: "userCell", for: indexPath) as? UserTableViewCell
-      else {return UITableViewCell()}
+    else {return UITableViewCell()}
+    
     let user = userList[indexPath.row]
     cell.user = user
     cell.configureCell()
@@ -74,17 +75,13 @@ extension UsersListViewController: UITableViewDataSource, UITableViewDelegate {
   }
   
   func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-     let user = userList[indexPath.row]
+    let user = userList[indexPath.row]
     
     let profileViewController = Builder.createProfileViewController(user: user,
                                                                     dataManager: dataManager,
                                                                     networkMode: networkMode,
                                                                     token: token)
-//    let profileViewController = ProfileViewController(user: user, token: token)
-//    let profileModel = ProfileModel(networkMode: networkMode, token: token)
-//    profileModel.dataManager = dataManager
-//    profileViewController.profileModel = profileModel
     
-      self.navigationController?.pushViewController(profileViewController, animated: true)
+    self.navigationController?.pushViewController(profileViewController, animated: true)
   }
 }

@@ -151,29 +151,18 @@ extension ProfileViewController {
       
       profileModel.checkIsCurrentUser(user: user) { [weak self] isCurrentUser in
         if isCurrentUser {
-          
-          DispatchQueue.main.async {
-            let logOutButton = UIBarButtonItem(title: "Log Out",
-                                               style: .plain,
-                                               target: self,
-                                               action: #selector(self?.logOutButtonTapped))
-            self?.navigationItem.rightBarButtonItem = logOutButton
-          }
+          self?.profileView.setLogOutButton(viewController: self,
+                                            action: #selector(self?.logOutButtonTapped))
         }
       }
       
     case .offline:
-      let logOutButton = UIBarButtonItem(title: "Log Out",
-                                         style: .plain,
-                                         target: self,
-                                         action: #selector(logOutButtonTapped))
-      
-      navigationItem.rightBarButtonItem = logOutButton
+      profileView.setLogOutButton(viewController: self,
+                                  action: #selector(logOutButtonTapped))
     }
   }
   
   private func navigateToUserList(userList: [UserData], title: String) {
-    
     let userListController = Builder.createUserListViewController(userList: userList,
                                                                   dataManager: profileModel.dataManager,
                                                                   networkMode: networkMode,
@@ -189,14 +178,9 @@ extension ProfileViewController {
     case .online:
       profileModel.checkIsCurrentUser(user: user) { [weak self] (isCurrentUser) in
         if isCurrentUser {
-          
-          DispatchQueue.main.async {
-            self?.profileView.hideFollowButton()
-          }
+          self?.profileView.hideFollowButton()
         } else {
-          DispatchQueue.main.async {
-            self?.profileView.showFollowButton()
-          }
+          self?.profileView.showFollowButton()
         }
       }
       
@@ -221,7 +205,6 @@ extension ProfileViewController {
 extension ProfileViewController: ProfileModelDelegate {
   func navigateToAuth() {
     let dataManager = CoreDataManager(modelName: "UserPost")
-    
     let authenticationController = Builder.createAuthViewController(dataManager: dataManager)
     
     UIApplication.shared.windows.first?.rootViewController = authenticationController
