@@ -7,24 +7,28 @@
 //
 
 import UIKit
+// MARK: - UsersListViewController
 
 final class UsersListViewController: UIViewController {
 
-  private let token: String
+  var dataManager: CoreDataManager!
   
-  private lazy var usersTableView: UITableView = {
-    let tableView = UITableView()
-    tableView.register(UserTableViewCell.self, forCellReuseIdentifier: "userCell")
-    tableView.dataSource = self
-    tableView.delegate = self
-    return tableView
+  lazy var userListView: UserListViewProtocol = {
+    let view = UserListView()
+    view.usersTableView.delegate = self
+    view.usersTableView.dataSource = self
+    return view
   }()
   
-  private var userList: [UserStruct]
+  private let token: String
+  private var networkMode: NetworkMode
+  private var userList: [UserData]
+  // MARK: - Inits
   
-  init(userList: [UserStruct], title: String, token: String) {
+  init(userList: [UserData], title: String, token: String, networkMode: NetworkMode) {
     self.userList = userList
     self.token = token
+    self.networkMode = networkMode
     super.init(nibName: nil, bundle: nil)
     self.navigationItem.title = title
   }
@@ -33,27 +37,19 @@ final class UsersListViewController: UIViewController {
     fatalError("init(coder:) has not been implemented")
   }
   
+  override func loadView() {
+    super.loadView()
+    view = userListView
+  }
+  
   override func viewDidLoad() {
     super.viewDidLoad()
-    setupLayout()
   }
   
   override func viewWillAppear(_ animated: Bool) {
     super.viewWillAppear(animated)
     
-    if let indexPath = usersTableView.indexPathForSelectedRow {
-      usersTableView.deselectRow(at: indexPath , animated: true)
-    }
-  }
-}
-
-extension UsersListViewController {
-  private func setupLayout() {
-    view.addSubview(usersTableView)
-    
-    usersTableView.snp.makeConstraints{
-      $0.edges.equalToSuperview()
-    }
+    userListView.deselectCurrentRow()
   }
 }
 
@@ -66,7 +62,8 @@ extension UsersListViewController: UITableViewDataSource, UITableViewDelegate {
   
   func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
     guard let cell = tableView.dequeueReusableCell(withIdentifier: "userCell", for: indexPath) as? UserTableViewCell
-      else {return UITableViewCell()}
+    else {return UITableViewCell()}
+    
     let user = userList[indexPath.row]
     cell.user = user
     cell.configureCell()
@@ -78,7 +75,13 @@ extension UsersListViewController: UITableViewDataSource, UITableViewDelegate {
   }
   
   func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-     let user = userList[indexPath.row]
-      self.navigationController?.pushViewController(ProfileViewController(user: user, token: token), animated: true)
+    let user = userList[indexPath.row]
+    
+    let profileViewController = Builder.createProfileViewController(user: user,
+                                                                    dataManager: dataManager,
+                                                                    networkMode: networkMode,
+                                                                    token: token)
+    
+    self.navigationController?.pushViewController(profileViewController, animated: true)
   }
 }

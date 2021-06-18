@@ -8,7 +8,7 @@
 
 import Foundation
 
-struct PostStruct: Codable {
+struct PostData: Codable {
   var id: String
   var description: String
   var image: String
